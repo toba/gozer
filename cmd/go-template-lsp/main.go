@@ -269,6 +269,19 @@ func processDiagnosticNotification(storage *workspaceStore, rootPathNotification
 
 	rootPath = uriToFilePath(rootPath)
 
+	// Scan for custom template functions defined in Go source files
+	customFuncs, err := gota.ScanWorkspaceForFuncMap(rootPath)
+	if err != nil {
+		slog.Warn("failed to scan for custom template functions", slog.String("error", err.Error()))
+	} else if len(customFuncs) > 0 {
+		gota.SetWorkspaceCustomFunctions(customFuncs)
+		funcNames := make([]string, 0, len(customFuncs))
+		for name := range customFuncs {
+			funcNames = append(funcNames, name)
+		}
+		slog.Info("discovered custom template functions", slog.Any("functions", funcNames))
+	}
+
 	storage.RootPath = rootPath
 	storage.RawFiles = gota.OpenProjectFiles(rootPath, TargetFileExtensions)
 	storage.RawFiles = convertKeysFromFilePathToUri(storage.RawFiles)
