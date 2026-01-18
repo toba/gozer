@@ -24,8 +24,6 @@
 
 ; Keywords
 "block" @keyword
-"break" @keyword
-"continue" @keyword
 "define" @keyword
 "else" @keyword
 "end" @keyword

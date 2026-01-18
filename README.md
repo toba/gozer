@@ -42,12 +42,44 @@ The extension automatically downloads the appropriate LSP binary for your platfo
 
 This loads the extension from your local checkout, useful for testing changes. See [Zed's extension development docs](https://zed.dev/docs/extensions/developing-extensions#developing-an-extension-locally) for more details.
 
+**Zed Settings Configuration:**
+
+After installing the extension, you can customize file associations in your Zed `settings.json` (Cmd+, → "Open Settings"):
+
+```json
+{
+  "languages": {
+    "Go HTML Template": {
+      "language_servers": ["go-template-lsp"]
+    },
+    "Go Text Template": {
+      "language_servers": ["go-template-lsp"]
+    }
+  }
+}
+```
+
+The language names "Go Text Template" and "Go HTML Template" are registered by this extension. They automatically apply to these file extensions:
+
+- **Go Text Template**: `.gotmpl`, `.go.tmpl`, `.gtpl`, `.tpl`
+- **Go HTML Template**: `.gohtml`, `.go.html`, `.html.tmpl`
+
+To add additional file extensions, use `file_types`:
+
+```json
+{
+  "file_types": {
+    "Go HTML Template": ["tmpl", "html"]
+  }
+}
+```
+
 ### Standalone LSP Binary
 
-Download prebuilt binaries from [GitHub Releases](https://github.com/pacer/gozer/releases), or build from source:
+Download prebuilt binaries from [GitHub Releases](https://github.com/STR-Consulting/gozer/releases), or build from source:
 
 ```bash
-go install github.com/pacer/gozer/cmd/go-template-lsp@latest
+go install github.com/STR-Consulting/gozer/cmd/go-template-lsp@latest
 ```
 
 ### Other Editors
