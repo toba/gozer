@@ -16,11 +16,11 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/STR-Consulting/gota"
-	"github.com/STR-Consulting/gota/analyzer"
-	"github.com/STR-Consulting/gota/lexer"
-	"github.com/STR-Consulting/gota/parser"
 	"github.com/pacer/gozer/cmd/go-template-lsp/lsp"
+	"github.com/yayolande/gota"
+	"github.com/yayolande/gota/analyzer"
+	"github.com/yayolande/gota/lexer"
+	"github.com/yayolande/gota/parser"
 )
 
 // version is set by goreleaser at build time.

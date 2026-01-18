@@ -3,9 +3,9 @@ package main
 import (
 	"testing"
 
-	"github.com/STR-Consulting/gota"
-	"github.com/STR-Consulting/gota/analyzer"
-	"github.com/STR-Consulting/gota/parser"
+	"github.com/yayolande/gota"
+	"github.com/yayolande/gota/analyzer"
+	"github.com/yayolande/gota/parser"
 )
 
 func TestBuiltinFunctions(t *testing.T) {

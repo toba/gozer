@@ -1,5 +1,5 @@
-github.com/STR-Consulting/gota v0.8.4 h1:E0ohzWbnt7b7vgM8L9G+z+iZzGLQiYw6rZjLoOXgysc=
-github.com/STR-Consulting/gota v0.8.4/go.mod h1:+xai7w8B0jUxUpYV0z91LGQ5ucjCzcR3VKgzrBLxxdc=
+github.com/STR-Consulting/gota v0.8.4 h1:0eKo813kXDf87/d1kPsebNPd+K6fP4X9qB682XoFnlc=
+github.com/STR-Consulting/gota v0.8.4/go.mod h1:5kQtkYEDAKwdjlGKNuNGzs0mCJyUmkjCc2mj6Jeaq/I=
 golang.org/x/mod v0.23.0 h1:Zb7khfcRGKk+kqfxFaP5tZqCnDZMjC5VtUBs87Hr6QM=
 golang.org/x/mod v0.23.0/go.mod h1:6SkKJ3Xj0I0BrPOZoBy3bdMptDDU9oJrpohJ3eWZ1fY=
 golang.org/x/sync v0.11.0 h1:GGz8+XQP4FvTTrjZPzNKTMFtSXH80RAzG+5ghFPgK9w=
