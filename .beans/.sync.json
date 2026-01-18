@@ -1,6 +1,12 @@
 {
   "version": 1,
   "beans": {
+    "gozer-3ce4": {
+      "clickup": {
+        "task_id": "868h4jzpx",
+        "synced_at": "2026-01-18T19:01:15.79727Z"
+      }
+    },
     "gozer-9bu9": {
       "clickup": {
         "task_id": "868h4jjrf",
