@@ -6,6 +6,17 @@ echo "==> Running pre-commit checks..."
 golangci-lint run
 go test ./...
 
+# Update zed-ext/extension.toml version if NEW_VERSION is set
+if [ -n "$NEW_VERSION" ]; then
+    # Strip 'v' prefix for extension.toml (e.g., v0.1.2 -> 0.1.2)
+    EXT_VERSION="${NEW_VERSION#v}"
+    EXTENSION_TOML="zed-ext/extension.toml"
+    if [ -f "$EXTENSION_TOML" ]; then
+        echo "==> Updating $EXTENSION_TOML version to $EXT_VERSION..."
+        sed -i '' "s/^version = \".*\"/version = \"$EXT_VERSION\"/" "$EXTENSION_TOML"
+    fi
+fi
+
 # Stage and show changes
 echo "==> Staging changes..."
 git add -A
