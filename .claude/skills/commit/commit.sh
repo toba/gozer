@@ -6,14 +6,21 @@ echo "==> Running pre-commit checks..."
 golangci-lint run
 go test ./...
 
-# Update zed-ext/extension.toml version if NEW_VERSION is set
+# Update zed-ext version files if NEW_VERSION is set
 if [ -n "$NEW_VERSION" ]; then
-    # Strip 'v' prefix for extension.toml (e.g., v0.1.2 -> 0.1.2)
+    # Strip 'v' prefix (e.g., v0.1.2 -> 0.1.2)
     EXT_VERSION="${NEW_VERSION#v}"
+
     EXTENSION_TOML="zed-ext/extension.toml"
     if [ -f "$EXTENSION_TOML" ]; then
         echo "==> Updating $EXTENSION_TOML version to $EXT_VERSION..."
         sed -i '' "s/^version = \".*\"/version = \"$EXT_VERSION\"/" "$EXTENSION_TOML"
+    fi
+
+    CARGO_TOML="zed-ext/Cargo.toml"
+    if [ -f "$CARGO_TOML" ]; then
+        echo "==> Updating $CARGO_TOML version to $EXT_VERSION..."
+        sed -i '' "s/^version = \".*\"/version = \"$EXT_VERSION\"/" "$CARGO_TOML"
     fi
 fi
 

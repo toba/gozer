@@ -10,10 +10,10 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/yayolande/gota"
-	"github.com/yayolande/gota/analyzer"
-	"github.com/yayolande/gota/lexer"
-	"github.com/yayolande/gota/parser"
+	tmpl "github.com/pacer/gozer/internal/template"
+	"github.com/pacer/gozer/internal/template/analyzer"
+	"github.com/pacer/gozer/internal/template/lexer"
+	"github.com/pacer/gozer/internal/template/parser"
 )
 
 var filesOpenedByEditor = make(map[string]string)
@@ -421,7 +421,7 @@ func ProcessHoverRequest(data []byte, openFiles map[string]*analyzer.FileDefinit
 		panic(msg)
 	}
 
-	typeStringified, reach := gota.Hover(file, position)
+	typeStringified, reach := tmpl.Hover(file, position)
 
 	type HoverResult struct {
 		Contents MarkupContent `json:"contents"`
@@ -502,7 +502,7 @@ func ProcessGoToDefinition(data []byte, openFiles map[string]*analyzer.FileDefin
 		}
 	}()
 
-	fileNames, reaches, errGoTo := gota.GoToDefinition(currentFile, position)
+	fileNames, reaches, errGoTo := tmpl.GoToDefinition(currentFile, position)
 
 	var res ResponseMessage[[]DefinitionResults]
 	res.Id = req.Id
@@ -583,7 +583,7 @@ func ProcessFoldingRangeRequest(data []byte, parsedFiles map[string]*parser.Grou
 	fileContent := textFromClient[fileUri]
 
 	if fileContent != nil {
-		rootNode, _ = gota.ParseSingleFile(fileContent)
+		rootNode, _ = tmpl.ParseSingleFile(fileContent)
 	}
 
 	if rootNode == nil {
@@ -609,7 +609,7 @@ func ProcessFoldingRangeRequest(data []byte, parsedFiles map[string]*parser.Grou
 		panic("file not found on server for folding range request: " + fileUri)
 	}
 
-	groups, comments := gota.FoldingRange(rootNode)
+	groups, comments := tmpl.FoldingRange(rootNode)
 
 	var res ResponseMessage[[]FoldingRangeResult]
 	res.Id = req.Id

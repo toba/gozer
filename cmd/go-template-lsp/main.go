@@ -17,10 +17,10 @@ import (
 	"sync"
 
 	"github.com/pacer/gozer/cmd/go-template-lsp/lsp"
-	"github.com/yayolande/gota"
-	"github.com/yayolande/gota/analyzer"
-	"github.com/yayolande/gota/lexer"
-	"github.com/yayolande/gota/parser"
+	tmpl "github.com/pacer/gozer/internal/template"
+	"github.com/pacer/gozer/internal/template/analyzer"
+	"github.com/pacer/gozer/internal/template/lexer"
+	"github.com/pacer/gozer/internal/template/parser"
 )
 
 // version is set by goreleaser at build time.
@@ -270,11 +270,11 @@ func processDiagnosticNotification(storage *workspaceStore, rootPathNotification
 	rootPath = uriToFilePath(rootPath)
 
 	// Scan for custom template functions defined in Go source files
-	customFuncs, err := gota.ScanWorkspaceForFuncMap(rootPath)
+	customFuncs, err := tmpl.ScanWorkspaceForFuncMap(rootPath)
 	if err != nil {
 		slog.Warn("failed to scan for custom template functions", slog.String("error", err.Error()))
 	} else if len(customFuncs) > 0 {
-		gota.SetWorkspaceCustomFunctions(customFuncs)
+		tmpl.SetWorkspaceCustomFunctions(customFuncs)
 		funcNames := make([]string, 0, len(customFuncs))
 		for name := range customFuncs {
 			funcNames = append(funcNames, name)
@@ -283,7 +283,7 @@ func processDiagnosticNotification(storage *workspaceStore, rootPathNotification
 	}
 
 	storage.RootPath = rootPath
-	storage.RawFiles = gota.OpenProjectFiles(rootPath, TargetFileExtensions)
+	storage.RawFiles = tmpl.OpenProjectFiles(rootPath, TargetFileExtensions)
 	storage.RawFiles = convertKeysFromFilePathToUri(storage.RawFiles)
 
 	muTextFromClient.Lock()
@@ -321,7 +321,7 @@ func processDiagnosticNotification(storage *workspaceStore, rootPathNotification
 		)
 	}()
 
-	var chainedFiles []gota.FileAnalysisAndError
+	var chainedFiles []tmpl.FileAnalysisAndError
 	cloneTextFromClient := make(map[string][]byte)
 
 	for range textChangedNotification {
@@ -345,7 +345,7 @@ func processDiagnosticNotification(storage *workspaceStore, rootPathNotification
 			storage.RawFiles[uri] = fileContent
 			cloneTextFromClient[uri] = fileContent
 
-			parseTree, localErrs := gota.ParseSingleFile(fileContent)
+			parseTree, localErrs := tmpl.ParseSingleFile(fileContent)
 
 			storage.ParsedFiles[uri] = parseTree
 			storage.ErrorsParsedFiles[uri] = localErrs
@@ -366,9 +366,9 @@ func processDiagnosticNotification(storage *workspaceStore, rootPathNotification
 		chainedFiles = nil
 
 		if len(cloneTextFromClient) == len(storage.ParsedFiles) {
-			chainedFiles = gota.DefinitionAnalisisWithinWorkspace(storage.ParsedFiles)
+			chainedFiles = tmpl.DefinitionAnalysisWithinWorkspace(storage.ParsedFiles)
 		} else if len(cloneTextFromClient) > 0 {
-			chainedFiles = gota.DefinitionAnalysisChainTrigerredByBatchFileChange(storage.ParsedFiles, namesOfFileChanged...)
+			chainedFiles = tmpl.DefinitionAnalysisChainTriggeredByBatchFileChange(storage.ParsedFiles, namesOfFileChanged...)
 		}
 
 		for _, fileAnalyzed := range chainedFiles {
@@ -378,7 +378,7 @@ func processDiagnosticNotification(storage *workspaceStore, rootPathNotification
 		}
 
 		for uri := range storage.OpenedFilesAnalyzed {
-			errs := make([]gota.Error, 0, len(storage.ErrorsParsedFiles[uri])+len(storage.ErrorsAnalyzedFiles[uri]))
+			errs := make([]tmpl.Error, 0, len(storage.ErrorsParsedFiles[uri])+len(storage.ErrorsAnalyzedFiles[uri]))
 			errs = append(errs, storage.ErrorsParsedFiles[uri]...)
 			errs = append(errs, storage.ErrorsAnalyzedFiles[uri]...)
 
@@ -456,7 +456,7 @@ func isFileInsideWorkspace(uri string, rootPath string, allowedFileExtensions []
 		return false
 	}
 
-	return gota.HasFileExtension(path, allowedFileExtensions)
+	return tmpl.HasFileExtension(path, allowedFileExtensions)
 }
 
 // clearPushDiagnosticNotification clears the diagnostics in a notification.
@@ -467,7 +467,7 @@ func clearPushDiagnosticNotification(notification *lsp.NotificationMessage[lsp.P
 }
 
 // setParseErrorsToDiagnosticsNotification adds parse errors to a notification.
-func setParseErrorsToDiagnosticsNotification(errs []gota.Error, response *lsp.NotificationMessage[lsp.PublishDiagnosticsParams]) *lsp.NotificationMessage[lsp.PublishDiagnosticsParams] {
+func setParseErrorsToDiagnosticsNotification(errs []tmpl.Error, response *lsp.NotificationMessage[lsp.PublishDiagnosticsParams]) *lsp.NotificationMessage[lsp.PublishDiagnosticsParams] {
 	if response == nil {
 		msg := "diagnostics errors cannot be appended on nil response"
 		slog.Error(msg)
@@ -485,7 +485,7 @@ func setParseErrorsToDiagnosticsNotification(errs []gota.Error, response *lsp.No
 
 		diagnostic := lsp.Diagnostic{
 			Message:  err.GetError(),
-			Range:    fromParserRangeToLspRange(err.GetRange()),
+			Range:    lsp.ConvertParserRangeToLspRange(err.GetRange()),
 			Severity: 1, // 1 = Error, 2 = Warning, 3 = Info, 4 = Hint
 		}
 
@@ -493,28 +493,6 @@ func setParseErrorsToDiagnosticsNotification(errs []gota.Error, response *lsp.No
 	}
 
 	return response
-}
-
-// intToUint safely converts int to uint, returning 0 for negative values.
-func intToUint(v int) uint {
-	if v < 0 {
-		return 0
-	}
-	return uint(v) //nolint:gosec // bounds checked above
-}
-
-// fromParserRangeToLspRange converts a parser range to an LSP range.
-func fromParserRangeToLspRange(rg lexer.Range) lsp.Range {
-	return lsp.Range{
-		Start: lsp.Position{
-			Line:      intToUint(rg.Start.Line),
-			Character: intToUint(rg.Start.Character),
-		},
-		End: lsp.Position{
-			Line:      intToUint(rg.End.Line),
-			Character: intToUint(rg.End.Character),
-		},
-	}
 }
 
 // uriToFilePath converts a file URI to an OS path.

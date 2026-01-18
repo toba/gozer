@@ -8,7 +8,7 @@ repository = "https://github.com/STR-Consulting/gozer"
 
 [language_servers.go-template-lsp]
 name = "Go Template LSP"
-languages = ["Go Text Template", "Go HTML Template", "Go HTML Template (HTMX 2)", "Go HTML Template (HTMX 4)"]
+languages = ["Go Text Template", "Go HTML Template", "Go HTMX 2", "Go HTMX 4"]
 
 [grammars.gotmpl]
 repository = "https://github.com/ngalaiko/tree-sitter-go-template"

@@ -2,6 +2,9 @@ module github.com/pacer/gozer
 
 go 1.25.6
 
-require github.com/yayolande/gota v0.8.4
+require golang.org/x/tools v0.41.0
 
-replace github.com/yayolande/gota => github.com/STR-Consulting/gota v0.8.5-0.20260118205650-7e9052ef87f2
+require (
+	golang.org/x/mod v0.32.0 // indirect
+	golang.org/x/sync v0.19.0 // indirect
+)

@@ -155,17 +155,21 @@ The LSP server uses a concurrent architecture:
 1. **Main loop**: Handles JSON-RPC requests from the editor
 2. **Diagnostic goroutine**: Processes file changes and publishes diagnostics
 
-Key dependencies:
-- [github.com/yayolande/gota](https://github.com/yayolande/gota) - Go template parser and analyzer
+The template parsing and analysis code in `internal/template` is derived from [gota](https://github.com/yayolande/gota) by yayolande (MIT License).
 
 ## Credits
 
 This project builds on the work of several open source projects:
 
+### Template Parser and Analyzer
+**[yayolande/gota](https://github.com/yayolande/gota)** (MIT License)
+
+The template parsing and semantic analysis code in `internal/template` is derived from gota by yayolande. This provides the lexer, parser, and type inference engine for Go templates.
+
 ### LSP Implementation
 **[yayolande/go-template-lsp](https://github.com/yayolande/go-template-lsp)** (MIT License)
 
-The core language server implementation is based on this project by yayolande. It provides the parsing, analysis, hover, go-to-definition, and diagnostic functionality through the [gota](https://github.com/yayolande/gota) library.
+The LSP server architecture is based on this project by yayolande, providing the JSON-RPC communication layer and editor integration.
 
 ### Tree-sitter Grammar
 **[ngalaiko/tree-sitter-go-template](https://github.com/ngalaiko/tree-sitter-go-template)** (MIT License)
