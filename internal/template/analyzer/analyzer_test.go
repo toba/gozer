@@ -227,9 +227,10 @@ func TestGetTypeOfDollarVariableWithinFile(t *testing.T) {
 			// start: skip type check for type difficult to create manually
 			if datium.ExpectedType == nil {
 				if datium.ExpectedTypeString == "" {
-					t.Skipf("type check for 'expected' and 'computed' type is skipped !\n"+
-						"Only skip type checking for type that are complex to create\n"+
-						"skipped type check for test = '%s'\n",
+					t.Skipf(
+						"type check for 'expected' and 'computed' type is skipped !\n"+
+							"Only skip type checking for type that are complex to create\n"+
+							"skipped type check for test = '%s'\n",
 						testName,
 					)
 				}
@@ -367,9 +368,15 @@ func TestSplitVariableNameFields(t *testing.T) {
 				}
 			} else {
 				if err != nil {
-					t.Fatalf("varialbe name spliting didn't expect an error ::: %s."+
-						"\n varname = %s\n expect = %q\n got = %q\n err = %s",
-						err.Err.Error(), datium.Name, datium.ExpectedNames, fields, err.Err.Error())
+					t.Fatalf(
+						"varialbe name spliting didn't expect an error ::: %s."+
+							"\n varname = %s\n expect = %q\n got = %q\n err = %s",
+						err.Err.Error(),
+						datium.Name,
+						datium.ExpectedNames,
+						fields,
+						err.Err.Error(),
+					)
 				}
 			}
 
@@ -717,7 +724,12 @@ func TestMakeTypeInference(t *testing.T) {
 				return nil, nil
 			}
 			nodeRange := lexer.Range{}
-			inferedTypes, _, errs := makeExpressionTypeCheck(symbols, typs, noOpInference, nodeRange)
+			inferedTypes, _, errs := makeExpressionTypeCheck(
+				symbols,
+				typs,
+				noOpInference,
+				nodeRange,
+			)
 
 			var err *parser.ParseError
 			if len(errs) > 0 {
@@ -726,7 +738,10 @@ func TestMakeTypeInference(t *testing.T) {
 
 			if err != nil {
 				if !errors.Is(err.Err, datium.ExpectedError) {
-					t.Fatalf("error while making expression type inference ::: %s", err.Err.Error())
+					t.Fatalf(
+						"error while making expression type inference ::: %s",
+						err.Err.Error(),
+					)
 				}
 
 				return
@@ -740,8 +755,13 @@ func TestMakeTypeInference(t *testing.T) {
 			expectFirst := computeExpressionType(datium.Expect[0], t)
 			expectSecond := computeExpressionType(datium.Expect[1], t)
 
-			if !types.Identical(inferedTypes[0], expectFirst) || !types.Identical(inferedTypes[1], expectSecond) {
-				t.Fatalf("type mismatch\n expected = %q\n got = %q", datium.Expect, inferedTypes)
+			if !types.Identical(inferedTypes[0], expectFirst) ||
+				!types.Identical(inferedTypes[1], expectSecond) {
+				t.Fatalf(
+					"type mismatch\n expected = %q\n got = %q",
+					datium.Expect,
+					inferedTypes,
+				)
 			}
 		})
 	}

@@ -194,7 +194,10 @@ func ConvertParserRangeToLspRange(parserRange lexer.Range) Range {
 }
 
 // ProcessInitializeRequest handles the initialize request.
-func ProcessInitializeRequest(data []byte, lspName string, lspVersion string) (response []byte, root string) {
+func ProcessInitializeRequest(
+	data []byte,
+	lspName, lspVersion string,
+) (response []byte, root string) {
 	req := RequestMessage[InitializeParams]{}
 
 	err := json.Unmarshal(data, &req)
@@ -287,7 +290,9 @@ type DidOpenTextDocumentParams struct {
 }
 
 // ProcessDidOpenTextDocumentNotification handles textDocument/didOpen.
-func ProcessDidOpenTextDocumentNotification(data []byte) (fileURI string, fileContent []byte) {
+func ProcessDidOpenTextDocumentNotification(
+	data []byte,
+) (fileURI string, fileContent []byte) {
 	request := RequestMessage[DidOpenTextDocumentParams]{}
 
 	err := json.Unmarshal(data, &request)
@@ -323,7 +328,9 @@ type DidChangeTextDocumentParams struct {
 }
 
 // ProcessDidChangeTextDocumentNotification handles textDocument/didChange.
-func ProcessDidChangeTextDocumentNotification(data []byte) (fileURI string, fileContent []byte) {
+func ProcessDidChangeTextDocumentNotification(
+	data []byte,
+) (fileURI string, fileContent []byte) {
 	var request RequestMessage[DidChangeTextDocumentParams]
 
 	err := json.Unmarshal(data, &request)
@@ -368,7 +375,9 @@ type DidCloseTextDocumentParams struct {
 }
 
 // ProcessDidCloseTextDocumentNotification handles textDocument/didClose.
-func ProcessDidCloseTextDocumentNotification(data []byte) (fileURI string, fileContent []byte) {
+func ProcessDidCloseTextDocumentNotification(
+	data []byte,
+) (fileURI string, fileContent []byte) {
 	var request RequestMessage[DidCloseTextDocumentParams]
 
 	err := json.Unmarshal(data, &request)
@@ -391,7 +400,10 @@ func ProcessDidCloseTextDocumentNotification(data []byte) (fileURI string, fileC
 }
 
 // ProcessHoverRequest handles textDocument/hover.
-func ProcessHoverRequest(data []byte, openFiles map[string]*analyzer.FileDefinition) []byte {
+func ProcessHoverRequest(
+	data []byte,
+	openFiles map[string]*analyzer.FileDefinition,
+) []byte {
 	type HoverParams struct {
 		TextDocument TextDocumentItem `json:"textDocument"`
 		Position     Position         `json:"position"`
@@ -464,7 +476,11 @@ type DefinitionResults struct {
 }
 
 // ProcessGoToDefinition handles textDocument/definition.
-func ProcessGoToDefinition(data []byte, openFiles map[string]*analyzer.FileDefinition, rawFiles map[string][]byte) (response []byte, fileName string) {
+func ProcessGoToDefinition(
+	data []byte,
+	openFiles map[string]*analyzer.FileDefinition,
+	rawFiles map[string][]byte,
+) (response []byte, fileName string) {
 	var req RequestMessage[DefinitionParams]
 
 	err := json.Unmarshal(data, &req)
@@ -567,7 +583,12 @@ const (
 )
 
 // ProcessFoldingRangeRequest handles textDocument/foldingRange.
-func ProcessFoldingRangeRequest(data []byte, parsedFiles map[string]*parser.GroupStatementNode, textFromClient map[string][]byte, muTextFromClient *sync.Mutex) (response []byte, fileName string) {
+func ProcessFoldingRangeRequest(
+	data []byte,
+	parsedFiles map[string]*parser.GroupStatementNode,
+	textFromClient map[string][]byte,
+	muTextFromClient *sync.Mutex,
+) (response []byte, fileName string) {
 	req := RequestMessage[FoldingRangeParams]{}
 
 	err := json.Unmarshal(data, &req)

@@ -5,7 +5,8 @@ import (
 )
 
 func (v VariableDefinition) String() string {
-	str := fmt.Sprintf(`{
+	str := fmt.Sprintf(
+		`{
 		"node": %s, 
 		"parent": %s, 
 		"range": %s, 
@@ -15,7 +16,14 @@ func (v VariableDefinition) String() string {
 		"TreeImplicitType": %s, 
 		"IsUsedOnce": %t 
 		}`,
-		v.node, v.parent, v.rng, v.name, v.fileName, v.typ.String(), v.TreeImplicitType, v.IsUsedOnce,
+		v.node,
+		v.parent,
+		v.rng,
+		v.name,
+		v.fileName,
+		v.typ.String(),
+		v.TreeImplicitType,
+		v.IsUsedOnce,
 	)
 
 	return str
@@ -27,14 +35,20 @@ func (t nodeImplicitType) String() string {
 		children += fmt.Sprintf("%s,", child)
 	}
 
-	if len(children) > 0 {
+	if children != "" {
 		children = children[:len(children)-1]
 	}
 
 	children = "[" + children + "]"
 
-	str := fmt.Sprintf(`{"fieldName": %s, "fieldType": %s, "Range": %s, "toDiscard": %t, "isIterable": %t, "children": %s }`,
-		t.fieldName, t.fieldType, t.rng, t.toDiscard, t.isIterable, children,
+	str := fmt.Sprintf(
+		`{"fieldName": %s, "fieldType": %s, "Range": %s, "toDiscard": %t, "isIterable": %t, "children": %s }`,
+		t.fieldName,
+		t.fieldType,
+		t.rng,
+		t.toDiscard,
+		t.isIterable,
+		children,
 	)
 
 	return str

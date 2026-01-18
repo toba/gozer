@@ -18,8 +18,10 @@ type ContainerTemplateDependencies struct {
 
 func newContainerTemplateDependencies() *ContainerTemplateDependencies {
 	return &ContainerTemplateDependencies{
-		ListTemplateInCyclicDependencies:  make(map[string]bool),
-		templateToFileNameDependencies:    make(map[*parser.GroupStatementNode]map[string]bool),
+		ListTemplateInCyclicDependencies: make(map[string]bool),
+		templateToFileNameDependencies: make(
+			map[*parser.GroupStatementNode]map[string]bool,
+		),
 		fileNameWithCollidingTemplateName: make(map[string]map[string]bool),
 	}
 }
@@ -81,18 +83,26 @@ func (t *WorkspaceTemplateManager) ResetTemplateDependencies() {
 
 func NewWorkspaceTemplateManager() *WorkspaceTemplateManager {
 	manager := &WorkspaceTemplateManager{
-		TemplateScopeToFileName:   make(map[*parser.GroupStatementNode]string),
-		TemplateScopeToDefinition: make(map[*parser.GroupStatementNode]*TemplateDefinition),
+		TemplateScopeToFileName: make(map[*parser.GroupStatementNode]string),
+		TemplateScopeToDefinition: make(
+			map[*parser.GroupStatementNode]*TemplateDefinition,
+		),
 
-		AnalyzedMainTemplateInFile:         make(map[string]ContainerFileAnalysisForRootTemplate),
-		AnalyzedDefinedTemplatesWithinFile: make(map[string]ContainerFileAnalysisForDefinedTemplates),
-		TemplateDependencies:               *newContainerTemplateDependencies(),
+		AnalyzedMainTemplateInFile: make(
+			map[string]ContainerFileAnalysisForRootTemplate,
+		),
+		AnalyzedDefinedTemplatesWithinFile: make(
+			map[string]ContainerFileAnalysisForDefinedTemplates,
+		),
+		TemplateDependencies: *newContainerTemplateDependencies(),
 	}
 
 	return manager
 }
 
-func (h *WorkspaceTemplateManager) RemoveTemplateScopeAssociatedToFileName(sourceFileName string) {
+func (h *WorkspaceTemplateManager) RemoveTemplateScopeAssociatedToFileName(
+	sourceFileName string,
+) {
 	for templateScopeToDelete, targetFileName := range h.TemplateScopeToFileName {
 		if sourceFileName == targetFileName {
 			delete(h.TemplateScopeToDefinition, templateScopeToDelete)
@@ -104,7 +114,9 @@ func (h *WorkspaceTemplateManager) RemoveTemplateScopeAssociatedToFileName(sourc
 }
 
 // BuildWorkspaceTemplateDefinition builds template definitions for all files in the workspace.
-func (h *WorkspaceTemplateManager) BuildWorkspaceTemplateDefinition(parsedFilesInWorkspace map[string]*parser.GroupStatementNode) map[string]bool {
+func (h *WorkspaceTemplateManager) BuildWorkspaceTemplateDefinition(
+	parsedFilesInWorkspace map[string]*parser.GroupStatementNode,
+) map[string]bool {
 	handler := NewTemplateBuilder(parsedFilesInWorkspace, h)
 
 	h.ResetTemplateDependencies()
@@ -145,9 +157,16 @@ func (h *WorkspaceTemplateManager) BuildWorkspaceTemplateDefinition(parsedFilesI
 	}
 
 	if len(handler.TemplateVisited) != len(handler.TemplateToDefinition) {
-		log.Printf("all template visited in the workspace should have a 'TemplateDefinition'\n"+
-			" len(templateVisited) = %d\n len(TemplateToDefinition) = %d\n templateVisited = %#v\n TemplateToDefinition = %#v\n",
-			len(handler.TemplateVisited), len(handler.TemplateToDefinition), handler.TemplateVisited, handler.TemplateToDefinition)
+		log.Printf(
+			"all template visited in the workspace should have a 'TemplateDefinition'\n"+
+				" len(templateVisited) = %d\n len(TemplateToDefinition) = %d\n templateVisited = %#v\n TemplateToDefinition = %#v\n",
+			len(
+				handler.TemplateVisited,
+			),
+			len(handler.TemplateToDefinition),
+			handler.TemplateVisited,
+			handler.TemplateToDefinition,
+		)
 		panic("all template visited in the workspace should have a 'TemplateDefinition'")
 	}
 
@@ -216,9 +235,14 @@ type workspaceTemplateBuilder struct {
 	affectedFiles map[string]bool
 }
 
-func NewTemplateBuilder(parsedFilesInWorkspace map[string]*parser.GroupStatementNode, templateHandler *WorkspaceTemplateManager) *workspaceTemplateBuilder {
+func NewTemplateBuilder(
+	parsedFilesInWorkspace map[string]*parser.GroupStatementNode,
+	templateHandler *WorkspaceTemplateManager,
+) *workspaceTemplateBuilder {
 	if templateHandler == nil {
-		panic("global template Handler/Manager must be defined at all time, but it wasn't the case")
+		panic(
+			"global template Handler/Manager must be defined at all time, but it wasn't the case",
+		)
 	}
 
 	handler := &workspaceTemplateBuilder{
@@ -242,7 +266,9 @@ func NewTemplateBuilder(parsedFilesInWorkspace map[string]*parser.GroupStatement
 	}
 
 	// Flush previous computation to rebuild from fresh
-	handler.templateManager.AnalyzedDefinedTemplatesWithinFile = make(map[string]ContainerFileAnalysisForDefinedTemplates)
+	handler.templateManager.AnalyzedDefinedTemplatesWithinFile = make(
+		map[string]ContainerFileAnalysisForDefinedTemplates,
+	)
 	handler.templateManager.TemplateDependencies = *newContainerTemplateDependencies()
 	// handler.templateManager.TemplateDependencies = ContainerTemplateDependencies{}
 
@@ -258,7 +284,13 @@ func NewTemplateBuilder(parsedFilesInWorkspace map[string]*parser.GroupStatement
 			file, globalVar, localVar := NewFileDefinition(fileName, root, nil)
 
 			goCode := root.ShortCut.CommentGoCode
-			definitionAnalysisComment(goCode, root, file, globalVar, localVar) // this help to set 'file.Functions' and 'file.TypeHints' for later use
+			definitionAnalysisComment(
+				goCode,
+				root,
+				file,
+				globalVar,
+				localVar,
+			) // this help to set 'file.Functions' and 'file.TypeHints' for later use
 
 			handler.templateManager.AnalyzedDefinedTemplatesWithinFile[fileName] = ContainerFileAnalysisForDefinedTemplates{
 				PartialFile:       file,
@@ -270,7 +302,9 @@ func NewTemplateBuilder(parsedFilesInWorkspace map[string]*parser.GroupStatement
 
 		handler.fileNameToDefinition[fileName] = handler.templateManager.AnalyzedDefinedTemplatesWithinFile[fileName].PartialFile
 
-		handler.templateManager.TemplateDependencies.fileNameWithCollidingTemplateName[fileName] = make(map[string]bool)
+		handler.templateManager.TemplateDependencies.fileNameWithCollidingTemplateName[fileName] = make(
+			map[string]bool,
+		)
 
 		// 2. Register all defined templates within a file
 		localTemplateDefinition := make(map[string]*parser.GroupStatementNode)
@@ -286,17 +320,28 @@ func NewTemplateBuilder(parsedFilesInWorkspace map[string]*parser.GroupStatement
 			if templateFound == nil {
 				localTemplateDefinition[templateName] = template
 			} else {
-				err := parser.NewParseError(template.TemplateNameToken(), errors.New("template already defined"))
+				err := parser.NewParseError(
+					template.TemplateNameToken(),
+					errors.New("template already defined"),
+				)
 				// handler.Errs = append(handler.Errs, err)
 
 				handler.templateManager.AnalyzedDefinedTemplatesWithinFile[fileName].TemplateErrs[template] =
-					append(handler.templateManager.AnalyzedDefinedTemplatesWithinFile[fileName].TemplateErrs[template], err)
+					append(
+						handler.templateManager.AnalyzedDefinedTemplatesWithinFile[fileName].TemplateErrs[template],
+						err,
+					)
 
 				if templateFound != template {
-					log.Printf("weirdly enough 'templateFound' is not similar to any 'template' available into the parent"+
-						"\n templateFound = %#v \n template = %#v\n",
-						templateFound, template)
-					panic("weirdly enough 'templateFound' is not similar to any 'template' available into the parent")
+					log.Printf(
+						"weirdly enough 'templateFound' is not similar to any 'template' available into the parent"+
+							"\n templateFound = %#v \n template = %#v\n",
+						templateFound,
+						template,
+					)
+					panic(
+						"weirdly enough 'templateFound' is not similar to any 'template' available into the parent",
+					)
 				}
 			}
 
@@ -306,7 +351,9 @@ func NewTemplateBuilder(parsedFilesInWorkspace map[string]*parser.GroupStatement
 			handler.multipleTemplateFromTemplateName[templateName] =
 				append(handler.multipleTemplateFromTemplateName[templateName], template)
 
-			handler.templateManager.TemplateDependencies.templateToFileNameDependencies[template] = make(map[string]bool)
+			handler.templateManager.TemplateDependencies.templateToFileNameDependencies[template] = make(
+				map[string]bool,
+			)
 		}
 	}
 
@@ -339,22 +386,41 @@ func NewTemplateBuilder(parsedFilesInWorkspace map[string]*parser.GroupStatement
 		delete(handler.templateManager.AnalyzedDefinedTemplatesWithinFile, fileName)
 	}
 
-	if len(handler.templateManager.AnalyzedDefinedTemplatesWithinFile) != len(parsedFilesInWorkspace) {
-		log.Printf("size mismatch between 'AnalyzedDefinedTemplatesWithinFile' and the available file in the workspace ! All of them must be partially analyzed at the start\n"+
-			" len(AnalyzedDefinedTemplatesWithinFile) = %d\n len(parsedFilesInWorkspace) = %d\n", len(handler.templateManager.AnalyzedDefinedTemplatesWithinFile), len(parsedFilesInWorkspace))
-		panic("size mismatch between 'AnalyzedDefinedTemplatesWithinFile' and the available file in the workspace ! All of them must be partially analyzed at the start")
+	if len(
+		handler.templateManager.AnalyzedDefinedTemplatesWithinFile,
+	) != len(
+		parsedFilesInWorkspace,
+	) {
+		log.Printf(
+			"size mismatch between 'AnalyzedDefinedTemplatesWithinFile' and the available file in the workspace ! All of them must be partially analyzed at the start\n"+
+				" len(AnalyzedDefinedTemplatesWithinFile) = %d\n len(parsedFilesInWorkspace) = %d\n",
+			len(handler.templateManager.AnalyzedDefinedTemplatesWithinFile),
+			len(parsedFilesInWorkspace),
+		)
+		panic(
+			"size mismatch between 'AnalyzedDefinedTemplatesWithinFile' and the available file in the workspace ! All of them must be partially analyzed at the start",
+		)
 	}
 
 	if len(handler.TemplateVisited) != len(handler.TemplateToFileName) {
-		log.Printf("size of template to visit must be equal to all the available template in the workspace\n"+
-			" len(TemplateVisited) = %d\n len(handler.TemplateToFileName) = %d\n", len(handler.TemplateVisited), len(handler.TemplateToFileName))
-		panic("size of template to visit must be equal to all the available template in the workspace")
+		log.Printf(
+			"size of template to visit must be equal to all the available template in the workspace\n"+
+				" len(TemplateVisited) = %d\n len(handler.TemplateToFileName) = %d\n",
+			len(handler.TemplateVisited),
+			len(handler.TemplateToFileName),
+		)
+		panic(
+			"size of template to visit must be equal to all the available template in the workspace",
+		)
 	}
 
 	return handler
 }
 
-func (h workspaceTemplateBuilder) FindTemplateWithinWorkspace(templateName string, rootOfTemplate *parser.GroupStatementNode) (*parser.GroupStatementNode, bool) {
+func (h *workspaceTemplateBuilder) FindTemplateWithinWorkspace(
+	templateName string,
+	rootOfTemplate *parser.GroupStatementNode,
+) (*parser.GroupStatementNode, bool) {
 	var templateFound *parser.GroupStatementNode
 	var isMultiple bool
 
@@ -388,17 +454,28 @@ func (h workspaceTemplateBuilder) FindTemplateWithinWorkspace(templateName strin
 	// return template, isMultiple // return *parser.GroupStatementNode, bool
 }
 
-func (h *workspaceTemplateBuilder) markCallPathAsCyclicalError(templateCollision *parser.TemplateStatementNode) {
+func (h *workspaceTemplateBuilder) markCallPathAsCyclicalError(
+	templateCollision *parser.TemplateStatementNode,
+) {
 	sizeCallStack := len(h.callerStack)
 
 	if len(h.callerStack) != len(h.callPath) {
-		log.Printf("length mismatch between 'callerStack' and 'callPath'\n callPath = %#v\n callerStack = %#v", h.callPath, h.callerStack)
+		log.Printf(
+			"length mismatch between 'callerStack' and 'callPath'\n callPath = %#v\n callerStack = %#v",
+			h.callPath,
+			h.callerStack,
+		)
 		panic("length mismatch between 'callerStack' and 'callPath'")
 	}
 
 	if sizeCallStack < 1 {
-		log.Println("cyclical call with less element than expect. callPath = ", h.callPath)
-		panic("cyclical call cannot be detected with only 0 element. At least 1 is needed")
+		log.Println(
+			"cyclical call with less element than expect. callPath = ",
+			h.callPath,
+		)
+		panic(
+			"cyclical call cannot be detected with only 0 element. At least 1 is needed",
+		)
 	}
 
 	foundCollidingTemplate := false
@@ -421,13 +498,16 @@ func (h *workspaceTemplateBuilder) markCallPathAsCyclicalError(templateCollision
 		log.Printf("caller said there is template name collision, "+
 			"but 'cyclical' detector was unable to find it\n"+
 			"handler = %#v\n", h)
-		panic("caller said there is template name collision, but 'cyclical' detector was unable to find it")
+		panic(
+			"caller said there is template name collision, but 'cyclical' detector was unable to find it",
+		)
 	}
 
 	// Place a warning before the entering the collision site ???
 	// c. beget an error for the entry call to cyclical dependency if possible
 	//
-	if indexStartCollision > 0 && !h.callerStack[indexStartCollision-1].isDependencyError {
+	if indexStartCollision > 0 &&
+		!h.callerStack[indexStartCollision-1].isDependencyError {
 		frontierStackToCyclicalCall := h.callerStack[indexStartCollision-1]
 		frontierToCyclicalCall := h.callerStack[indexStartCollision-1].templateCall
 
@@ -457,7 +537,10 @@ func (h *workspaceTemplateBuilder) markCallPathAsCyclicalError(templateCollision
 			// errMsg := errors.New("template call into infinite loop")
 			// errMsg := errors.New("template will enventually call itself")
 			errMsg := errors.New("continuing cyclical template call")
-			err := parser.NewParseError(h.callerStack[index].templateCall.TemplateName, errMsg)
+			err := parser.NewParseError(
+				h.callerStack[index].templateCall.TemplateName,
+				errMsg,
+			)
 
 			fileName := h.TemplateToFileName[h.callerStack[index].parentTemplateCall]
 			partialFile := h.templateManager.AnalyzedDefinedTemplatesWithinFile[fileName]
@@ -502,11 +585,15 @@ func (h *workspaceTemplateBuilder) markCallPathAsCyclicalError(templateCollision
 }
 
 // TODO: shouldn't this function be located near 'TemplateDefinition' type ????
-func (h workspaceTemplateBuilder) CreateTemplateDefinition(template *parser.GroupStatementNode, templateName string, typ types.Type) *TemplateDefinition {
+func (h *workspaceTemplateBuilder) CreateTemplateDefinition(
+	template *parser.GroupStatementNode,
+	templateName string,
+	typ types.Type,
+) *TemplateDefinition {
 	fileName := h.TemplateToFileName[template]
 
 	if typ == nil {
-		typ = TYPE_ANY.Type()
+		typ = typeAny.Type()
 	}
 
 	def := NewTemplateDefinition(templateName, fileName, template, template.Range(), typ)
@@ -514,7 +601,10 @@ func (h workspaceTemplateBuilder) CreateTemplateDefinition(template *parser.Grou
 	return def
 }
 
-func (h *workspaceTemplateBuilder) BuildTemplateDefinition(templateScope *parser.GroupStatementNode, templateName string) *TemplateDefinition {
+func (h *workspaceTemplateBuilder) BuildTemplateDefinition(
+	templateScope *parser.GroupStatementNode,
+	templateName string,
+) *TemplateDefinition {
 	if templateScope == nil {
 		log.Printf("template to investigate is <nil>\n handler = %#v\n", h)
 		panic("template to investigate is <nil>")
@@ -539,7 +629,11 @@ func (h *workspaceTemplateBuilder) BuildTemplateDefinition(templateScope *parser
 	// END experimental
 
 	h.callPath[templateName] = true
-	h.increaseDepth(nil, nil, "") // nasty trick since 'defer' do not work within 'for loop'
+	h.increaseDepth(
+		nil,
+		nil,
+		"",
+	) // nasty trick since 'defer' do not work within 'for loop'
 
 	outterTemplates := make(map[*parser.GroupStatementNode]*TemplateDefinition)
 
@@ -549,7 +643,10 @@ func (h *workspaceTemplateBuilder) BuildTemplateDefinition(templateScope *parser
 		h.decreaseDepth() // continuation of the stack trick since 'defer' do not work within loop
 		h.increaseDepth(templateScope, templateCall, templateNameToVisit)
 
-		templateFound, isMultiple := h.FindTemplateWithinWorkspace(templateNameToVisit, nil)
+		templateFound, isMultiple := h.FindTemplateWithinWorkspace(
+			templateNameToVisit,
+			nil,
+		)
 
 		if templateFound == nil { // nothing found
 			// TODO: handler error template not found here
@@ -563,7 +660,7 @@ func (h *workspaceTemplateBuilder) BuildTemplateDefinition(templateScope *parser
 		if h.callPath[templateNameToVisit] { // error, cycle found
 			h.markCallPathAsCyclicalError(templateCall)
 
-			anyTyp := TYPE_ANY.Type()
+			anyTyp := typeAny.Type()
 			anyDef := h.CreateTemplateDefinition(templateFound, templateName, anyTyp)
 
 			outterTemplates[templateFound] = anyDef
@@ -582,8 +679,12 @@ func (h *workspaceTemplateBuilder) BuildTemplateDefinition(templateScope *parser
 		}
 
 		if isMultiple { // many template outside current file only found
-			anyTyp := TYPE_ANY.Type()
-			anyDef := h.CreateTemplateDefinition(templateFound, templateNameToVisit, anyTyp)
+			anyTyp := typeAny.Type()
+			anyDef := h.CreateTemplateDefinition(
+				templateFound,
+				templateNameToVisit,
+				anyTyp,
+			)
 
 			outterTemplates[templateFound] = anyDef
 			continue
@@ -592,9 +693,14 @@ func (h *workspaceTemplateBuilder) BuildTemplateDefinition(templateScope *parser
 		if h.TemplateVisited[templateFound] {
 			def := h.TemplateToDefinition[templateFound]
 			if def == nil {
-				log.Printf("during template dependency analysis, a visited template cannot have a <nil> 'TemplateDefinition'\n"+
-					"template in question = %#v\n", templateFound)
-				panic("during template dependency analysis, a visited template cannot have a <nil> 'TemplateDefinition'")
+				log.Printf(
+					"during template dependency analysis, a visited template cannot have a <nil> 'TemplateDefinition'\n"+
+						"template in question = %#v\n",
+					templateFound,
+				)
+				panic(
+					"during template dependency analysis, a visited template cannot have a <nil> 'TemplateDefinition'",
+				)
 			}
 
 			outterTemplates[templateFound] = def
@@ -635,9 +741,16 @@ func (h *workspaceTemplateBuilder) BuildTemplateDefinition(templateScope *parser
 
 	file := h.fileNameToDefinition[fileName]
 	if file == nil {
-		log.Printf("template dependency analyzer was unable to find the partial file definition for %s\n"+
-			" templateName = %s\n templateScope = %#v\n", fileName, templateName, templateScope)
-		panic("template dependency analyzer was unable to find the partial file definition for " + fileName)
+		log.Printf(
+			"template dependency analyzer was unable to find the partial file definition for %s\n"+
+				" templateName = %s\n templateScope = %#v\n",
+			fileName,
+			templateName,
+			templateScope,
+		)
+		panic(
+			"template dependency analyzer was unable to find the partial file definition for " + fileName,
+		)
 	}
 
 	for template, templateDef := range outterTemplates {
@@ -651,8 +764,18 @@ func (h *workspaceTemplateBuilder) BuildTemplateDefinition(templateScope *parser
 	originalRoot := file.root
 	file.root = templateScope
 
-	globalVariables, localVariables := NewGlobalAndLocalVariableDefinition(templateScope, templateScope.Parent(), fileName)
-	typ, _, errs := definitionAnalysisGroupStatement(templateScope, templateScope.Parent(), file, globalVariables, localVariables)
+	globalVariables, localVariables := NewGlobalAndLocalVariableDefinition(
+		templateScope,
+		templateScope.Parent(),
+		fileName,
+	)
+	typ, _, errs := definitionAnalysisGroupStatement(
+		templateScope,
+		templateScope.Parent(),
+		file,
+		globalVariables,
+		localVariables,
+	)
 
 	file.root = originalRoot
 
@@ -666,10 +789,18 @@ func (h *workspaceTemplateBuilder) BuildTemplateDefinition(templateScope *parser
 	return def
 }
 
-func (h *workspaceTemplateBuilder) increaseDepth(parentTemplateCall *parser.GroupStatementNode, templateCall *parser.TemplateStatementNode, templateNameToVisit string) {
+func (h *workspaceTemplateBuilder) increaseDepth(
+	parentTemplateCall *parser.GroupStatementNode,
+	templateCall *parser.TemplateStatementNode,
+	templateNameToVisit string,
+) {
 	if len(h.callerStack) > h.maxDepth {
-		log.Printf("max depth reached during depencies analysis of 'TemplateStatementNode'\n "+
-			"h.callerStack = %#v\n handler = %#v\n", h.callerStack, h)
+		log.Printf(
+			"max depth reached during depencies analysis of 'TemplateStatementNode'\n "+
+				"h.callerStack = %#v\n handler = %#v\n",
+			h.callerStack,
+			h,
+		)
 		panic("max depth reached during depencies analysis of 'TemplateStatementNode'")
 	}
 
@@ -687,9 +818,15 @@ func (h *workspaceTemplateBuilder) decreaseDepth() {
 	size := len(h.callerStack)
 
 	if size == 0 {
-		log.Printf("no more element to unwind from the caller stack during depencies analysis for 'TemplateStatementNode'\n"+
-			"size = %d\n handler = %#v\n", size, h)
-		panic("no more element to unwind from the caller stack during depencies analysis for 'TemplateStatementNode'")
+		log.Printf(
+			"no more element to unwind from the caller stack during depencies analysis for 'TemplateStatementNode'\n"+
+				"size = %d\n handler = %#v\n",
+			size,
+			h,
+		)
+		panic(
+			"no more element to unwind from the caller stack during depencies analysis for 'TemplateStatementNode'",
+		)
 	}
 
 	h.callerStack = h.callerStack[:size-1]

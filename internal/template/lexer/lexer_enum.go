@@ -5,31 +5,31 @@ package lexer
 // ----------
 
 const (
-	DOT_VARIABLE Kind = iota
-	DOLLAR_VARIABLE
-	KEYWORD
-	FUNCTION
-	IDENTIFIER
-	ASSIGNEMENT
-	DECLARATION_ASSIGNEMENT
-	STRING
-	CHARACTER
-	NUMBER
-	DECIMAL
-	COMPLEX_NUMBER
-	BOOLEAN
-	EQUAL_COMPARISON
-	PIPE
-	COMMA
-	LEFT_PAREN
-	RIGTH_PAREN
-	COMMENT
-	SPACE_EATER
-	EOL // End Of Line
-	EOF
-	// STATIC_GROUP represents a static group.
-	STATIC_GROUP
-	EXPANDABLE_GROUP
-	NOT_FOUND
-	UNEXPECTED
+	DotVariable Kind = iota
+	DollarVariable
+	Keyword
+	Function
+	Identifier
+	Assignment
+	DeclarationAssignment
+	StringLit
+	Character
+	Number
+	Decimal
+	ComplexNumber
+	Boolean
+	EqualComparison
+	Pipe
+	Comma
+	LeftParen
+	RightParen
+	Comment
+	SpaceEater
+	Eol // End Of Line
+	Eof
+	// StaticGroup represents a static group.
+	StaticGroup
+	ExpandableGroup
+	NotFound
+	Unexpected
 )

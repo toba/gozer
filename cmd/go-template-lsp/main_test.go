@@ -118,7 +118,12 @@ func TestSimpleExpression(t *testing.T) {
 	for _, file := range analyzed {
 		if len(file.Errs) > 0 {
 			for _, err := range file.Errs {
-				t.Logf("Analysis error in %s: %s at %v", file.FileName, err.GetError(), err.GetRange())
+				t.Logf(
+					"Analysis error in %s: %s at %v",
+					file.FileName,
+					err.GetError(),
+					err.GetRange(),
+				)
 			}
 		} else {
 			t.Log("No errors! Function 'and' was found.")
@@ -185,7 +190,13 @@ func TestComplexTemplate(t *testing.T) {
 	for _, file := range analyzed {
 		if len(file.Errs) > 0 {
 			for _, err := range file.Errs {
-				t.Logf("Analysis error in %s: %s at line %d:%d", file.FileName, err.GetError(), err.GetRange().Start.Line, err.GetRange().Start.Character)
+				t.Logf(
+					"Analysis error in %s: %s at line %d:%d",
+					file.FileName,
+					err.GetError(),
+					err.GetRange().Start.Line,
+					err.GetRange().Start.Character,
+				)
 			}
 		}
 	}
@@ -200,7 +211,10 @@ func TestCustomFunctionFromFuncMap(t *testing.T) {
 	// Create a custom function definition with variadic signature
 	// This simulates what ScanWorkspaceForFuncMap would discover
 	customFuncs["timehtml"] = analyzer.NewCustomFunctionDefinition("timehtml", "test.go")
-	customFuncs["formatDate"] = analyzer.NewCustomFunctionDefinition("formatDate", "test.go")
+	customFuncs["formatDate"] = analyzer.NewCustomFunctionDefinition(
+		"formatDate",
+		"test.go",
+	)
 
 	tmpl.SetWorkspaceCustomFunctions(customFuncs)
 	defer tmpl.SetWorkspaceCustomFunctions(nil) // cleanup
@@ -224,11 +238,16 @@ func TestCustomFunctionFromFuncMap(t *testing.T) {
 		for _, err := range file.Errs {
 			errMsg := err.GetError()
 			// timehtml should NOT be flagged as undefined
-			if strings.Contains(errMsg, "timehtml") && strings.Contains(errMsg, "undefined") {
+			if strings.Contains(errMsg, "timehtml") &&
+				strings.Contains(errMsg, "undefined") {
 				t.Errorf("custom function 'timehtml' incorrectly flagged: %s", errMsg)
 			}
-			if strings.Contains(errMsg, "timehtml") && strings.Contains(errMsg, "field or method not found") {
-				t.Errorf("custom function 'timehtml' incorrectly flagged as field: %s", errMsg)
+			if strings.Contains(errMsg, "timehtml") &&
+				strings.Contains(errMsg, "field or method not found") {
+				t.Errorf(
+					"custom function 'timehtml' incorrectly flagged as field: %s",
+					errMsg,
+				)
 			}
 		}
 	}
@@ -277,7 +296,11 @@ func TestMethodCallWithArguments(t *testing.T) {
 					errMsg := err.GetError()
 					for _, forbidden := range tc.forbiddenErrors {
 						if strings.Contains(errMsg, forbidden) {
-							t.Errorf("unexpected error %q in template: %s", errMsg, tc.template)
+							t.Errorf(
+								"unexpected error %q in template: %s",
+								errMsg,
+								tc.template,
+							)
 						}
 					}
 				}
@@ -422,7 +445,11 @@ func TestRealWorldTemplatePatterns(t *testing.T) {
 					errMsg := err.GetError()
 					for _, forbidden := range tc.forbiddenErrors {
 						if strings.Contains(errMsg, forbidden) {
-							t.Errorf("unexpected error %q in template %s", errMsg, tc.name)
+							t.Errorf(
+								"unexpected error %q in template %s",
+								errMsg,
+								tc.name,
+							)
 						}
 					}
 				}

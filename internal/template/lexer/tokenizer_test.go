@@ -224,8 +224,14 @@ func TestConvertToTextEditorPosition(t *testing.T) {
 		expected := datium.expect
 
 		t.Run(testName, func(t *testing.T) {
-			start := ConvertSingleIndexToTextEditorPosition(input.Content, input.SelectionRange[0])
-			end := ConvertSingleIndexToTextEditorPosition(input.Content, input.SelectionRange[1])
+			start := ConvertSingleIndexToTextEditorPosition(
+				input.Content,
+				input.SelectionRange[0],
+			)
+			end := ConvertSingleIndexToTextEditorPosition(
+				input.Content,
+				input.SelectionRange[1],
+			)
 
 			got := Range{Start: start, End: end}
 

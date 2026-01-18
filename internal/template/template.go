@@ -52,7 +52,7 @@ import (
 // For the second, the lexer and parser should do as much as possible to return the closest valid token/ast, so that
 // those tokens and their states (boolean status) are seen by the parser. The parser then could make adjustment onto which statement
 // can return error while parsing. obviously, a line of tokens that have failed should in any case return a parse error, since the
-// whole goal of this process is to make sure the 'analysis' phase do not output indesirable error to the user
+// whole goal of this process is to make sure the 'analysis' phase do not output undesirable error to the user
 // On the same vain, a field should be added in the AST, allowing to identify whether the ast is failed parsing or not, since now all
 // failing and successful ast are returned. `ast { isParseError bool }`
 
@@ -86,7 +86,9 @@ func GetWorkspaceCustomFunctions() map[string]*checker.FunctionDefinition {
 
 // ScanWorkspaceForFuncMap scans Go source files in the given root path for
 // template.FuncMap definitions and returns the discovered custom functions.
-func ScanWorkspaceForFuncMap(rootPath string) (map[string]*checker.FunctionDefinition, error) {
+func ScanWorkspaceForFuncMap(
+	rootPath string,
+) (map[string]*checker.FunctionDefinition, error) {
 	return checker.ScanWorkspaceForFuncMap(rootPath)
 }
 
@@ -99,7 +101,11 @@ func OpenProjectFiles(rootDir string, withFileExtensions []string) map[string][]
 	return openProjectFilesSafely(rootDir, withFileExtensions, currentDepth, maxDepth)
 }
 
-func openProjectFilesSafely(rootDir string, withFileExtensions []string, currentDepth, maxDepth int) map[string][]byte {
+func openProjectFilesSafely(
+	rootDir string,
+	withFileExtensions []string,
+	currentDepth, maxDepth int,
+) map[string][]byte {
 	if currentDepth > maxDepth {
 		return nil
 	}
@@ -116,7 +122,12 @@ func openProjectFilesSafely(rootDir string, withFileExtensions []string, current
 
 		if entry.IsDir() {
 			subDir := fileName
-			subFiles := openProjectFilesSafely(subDir, withFileExtensions, currentDepth+1, maxDepth)
+			subFiles := openProjectFilesSafely(
+				subDir,
+				withFileExtensions,
+				currentDepth+1,
+				maxDepth,
+			)
 
 			maps.Copy(fileNamesToContent, subFiles)
 			continue
@@ -126,7 +137,8 @@ func openProjectFilesSafely(rootDir string, withFileExtensions []string, current
 			continue
 		}
 
-		file, err := os.Open(fileName) //nolint:gosec // fileName comes from trusted caller
+		//nolint:gosec // fileName comes from trusted caller
+		file, err := os.Open(fileName)
 		if err != nil {
 			log.Println("unable to open file, ", err.Error())
 			continue
@@ -146,7 +158,11 @@ func ParseSingleFile(source []byte) (*parser.GroupStatementNode, []Error) {
 
 	parseTree, parseErrs := parser.Parse(streamsOfToken)
 	if parseTree == nil {
-		panic("root parse tree should never be <nil>, even when empty. source = " + string(source))
+		panic(
+			"root parse tree should never be <nil>, even when empty. source = " + string(
+				source,
+			),
+		)
 	}
 
 	parseErrs = append(parseErrs, tokenErrs...)
@@ -155,7 +171,9 @@ func ParseSingleFile(source []byte) (*parser.GroupStatementNode, []Error) {
 
 // ParseFilesInWorkspace parses all files within a workspace.
 // Returns AST nodes and error list. Never returns nil, always an empty 'map' if nothing found.
-func ParseFilesInWorkspace(workspaceFiles map[string][]byte) (map[string]*parser.GroupStatementNode, []Error) {
+func ParseFilesInWorkspace(
+	workspaceFiles map[string][]byte,
+) (map[string]*parser.GroupStatementNode, []Error) {
 	parsedFilesInWorkspace := make(map[string]*parser.GroupStatementNode)
 
 	errs := make([]Error, 0, len(workspaceFiles)*2)
@@ -179,17 +197,24 @@ func ParseFilesInWorkspace(workspaceFiles map[string][]byte) (map[string]*parser
 
 // DefinitionAnalysisSingleFile performs semantic analysis on a single file.
 // Use DefinitionAnalysisChainTriggeredBySingleFileChange instead for better performance.
-func DefinitionAnalysisSingleFile(fileName string, parsedFilesInWorkspace map[string]*parser.GroupStatementNode) (*checker.FileDefinition, []Error) {
+func DefinitionAnalysisSingleFile(
+	fileName string,
+	parsedFilesInWorkspace map[string]*parser.GroupStatementNode,
+) (*checker.FileDefinition, []Error) {
 	if len(parsedFilesInWorkspace) == 0 {
 		return nil, nil
 	}
 
 	if parsedFilesInWorkspace[fileName] == nil {
-		log.Printf("file '%s' is unavailable in the current workspace\n parsedFilesInWorkspace = %#v\n", fileName, parsedFilesInWorkspace)
+		log.Printf(
+			"file '%s' is unavailable in the current workspace\n parsedFilesInWorkspace = %#v\n",
+			fileName,
+			parsedFilesInWorkspace,
+		)
 		panic("file '" + fileName + "' is unavailable in the current workspace")
 	}
 
-	templateManager := checker.TEMPLATE_MANAGER
+	templateManager := checker.TemplateManager
 	templateManager.RemoveTemplateScopeAssociatedToFileName(fileName)
 
 	_ = templateManager.BuildWorkspaceTemplateDefinition(parsedFilesInWorkspace)
@@ -199,7 +224,10 @@ func DefinitionAnalysisSingleFile(fileName string, parsedFilesInWorkspace map[st
 	cycleErrs := templateManager.AnalyzedDefinedTemplatesWithinFile[fileName].CycleTemplateErrs
 	partialFile := templateManager.AnalyzedDefinedTemplatesWithinFile[fileName].PartialFile
 
-	file, errs := checker.DefinitionAnalysisFromPartialFile(partialFile, workspaceTemplateDefinition)
+	file, errs := checker.DefinitionAnalysisFromPartialFile(
+		partialFile,
+		workspaceTemplateDefinition,
+	)
 
 	errs = append(errs, templateErrs...)
 	errs = append(errs, cycleErrs...)
@@ -208,20 +236,29 @@ func DefinitionAnalysisSingleFile(fileName string, parsedFilesInWorkspace map[st
 }
 
 // DefinitionAnalysisChainTriggeredBySingleFileChange computes semantic analysis for a file and all affected files.
-func DefinitionAnalysisChainTriggeredBySingleFileChange(parsedFilesInWorkspace map[string]*parser.GroupStatementNode, fileName string) []FileAnalysisAndError {
+func DefinitionAnalysisChainTriggeredBySingleFileChange(
+	parsedFilesInWorkspace map[string]*parser.GroupStatementNode,
+	fileName string,
+) []FileAnalysisAndError {
 	if len(parsedFilesInWorkspace) == 0 {
 		return nil
 	}
 
 	if parsedFilesInWorkspace[fileName] == nil {
-		log.Printf("file '%s' is unavailable in the current workspace\n parsedFilesInWorkspace = %#v\n", fileName, parsedFilesInWorkspace)
+		log.Printf(
+			"file '%s' is unavailable in the current workspace\n parsedFilesInWorkspace = %#v\n",
+			fileName,
+			parsedFilesInWorkspace,
+		)
 		panic("file '" + fileName + "' is unavailable in the current workspace")
 	}
 
-	templateManager := checker.TEMPLATE_MANAGER
+	templateManager := checker.TemplateManager
 	templateManager.RemoveTemplateScopeAssociatedToFileName(fileName)
 
-	affectedFiles := templateManager.BuildWorkspaceTemplateDefinition(parsedFilesInWorkspace)
+	affectedFiles := templateManager.BuildWorkspaceTemplateDefinition(
+		parsedFilesInWorkspace,
+	)
 	affectedFiles[fileName] = true
 
 	workspaceTemplateDefinition := templateManager.TemplateScopeToDefinition
@@ -230,7 +267,10 @@ func DefinitionAnalysisChainTriggeredBySingleFileChange(parsedFilesInWorkspace m
 	for fileNameAffected := range affectedFiles {
 		partialFile := templateManager.AnalyzedDefinedTemplatesWithinFile[fileNameAffected].PartialFile
 
-		file, errs := checker.DefinitionAnalysisFromPartialFile(partialFile, workspaceTemplateDefinition)
+		file, errs := checker.DefinitionAnalysisFromPartialFile(
+			partialFile,
+			workspaceTemplateDefinition,
+		)
 
 		templateErrs := templateManager.AnalyzedDefinedTemplatesWithinFile[fileNameAffected].GetTemplateErrs()
 		cycleErrs := templateManager.AnalyzedDefinedTemplatesWithinFile[fileNameAffected].CycleTemplateErrs
@@ -251,17 +291,24 @@ func DefinitionAnalysisChainTriggeredBySingleFileChange(parsedFilesInWorkspace m
 }
 
 // DefinitionAnalysisChainTriggeredByBatchFileChange computes semantic analysis for multiple file changes.
-func DefinitionAnalysisChainTriggeredByBatchFileChange(parsedFilesInWorkspace map[string]*parser.GroupStatementNode, fileNames ...string) []FileAnalysisAndError {
+func DefinitionAnalysisChainTriggeredByBatchFileChange(
+	parsedFilesInWorkspace map[string]*parser.GroupStatementNode,
+	fileNames ...string,
+) []FileAnalysisAndError {
 	if len(parsedFilesInWorkspace) == 0 {
 		return nil
 	}
 
-	templateManager := checker.TEMPLATE_MANAGER
+	templateManager := checker.TemplateManager
 	nameOfFileChanged := make(map[string]bool)
 
 	for _, fileName := range fileNames {
 		if parsedFilesInWorkspace[fileName] == nil {
-			log.Printf("file '%s' is unavailable in the current workspace\n parsedFilesInWorkspace = %#v\n", fileName, parsedFilesInWorkspace)
+			log.Printf(
+				"file '%s' is unavailable in the current workspace\n parsedFilesInWorkspace = %#v\n",
+				fileName,
+				parsedFilesInWorkspace,
+			)
 			panic("file '" + fileName + "' is unavailable in the current workspace")
 		}
 
@@ -269,7 +316,9 @@ func DefinitionAnalysisChainTriggeredByBatchFileChange(parsedFilesInWorkspace ma
 		nameOfFileChanged[fileName] = true
 	}
 
-	affectedFiles := templateManager.BuildWorkspaceTemplateDefinition(parsedFilesInWorkspace)
+	affectedFiles := templateManager.BuildWorkspaceTemplateDefinition(
+		parsedFilesInWorkspace,
+	)
 	maps.Copy(affectedFiles, nameOfFileChanged)
 
 	workspaceTemplateDefinition := templateManager.TemplateScopeToDefinition
@@ -278,7 +327,10 @@ func DefinitionAnalysisChainTriggeredByBatchFileChange(parsedFilesInWorkspace ma
 	for fileNameAffected := range affectedFiles {
 		partialFile := templateManager.AnalyzedDefinedTemplatesWithinFile[fileNameAffected].PartialFile
 
-		file, errs := checker.DefinitionAnalysisFromPartialFile(partialFile, workspaceTemplateDefinition)
+		file, errs := checker.DefinitionAnalysisFromPartialFile(
+			partialFile,
+			workspaceTemplateDefinition,
+		)
 
 		templateErrs := templateManager.AnalyzedDefinedTemplatesWithinFile[fileNameAffected].GetTemplateErrs()
 		cycleErrs := templateManager.AnalyzedDefinedTemplatesWithinFile[fileNameAffected].CycleTemplateErrs
@@ -299,23 +351,33 @@ func DefinitionAnalysisChainTriggeredByBatchFileChange(parsedFilesInWorkspace ma
 }
 
 // DefinitionAnalysisWithinWorkspace performs definition analysis for all files in a workspace.
-func DefinitionAnalysisWithinWorkspace(parsedFilesInWorkspace map[string]*parser.GroupStatementNode) []FileAnalysisAndError {
+func DefinitionAnalysisWithinWorkspace(
+	parsedFilesInWorkspace map[string]*parser.GroupStatementNode,
+) []FileAnalysisAndError {
 	if len(parsedFilesInWorkspace) == 0 {
 		return nil
 	}
 
-	checker.TEMPLATE_MANAGER = checker.NewWorkspaceTemplateManager()
-	templateManager := checker.TEMPLATE_MANAGER
+	checker.TemplateManager = checker.NewWorkspaceTemplateManager()
+	templateManager := checker.TemplateManager
 
-	affectedFiles := templateManager.BuildWorkspaceTemplateDefinition(parsedFilesInWorkspace)
+	affectedFiles := templateManager.BuildWorkspaceTemplateDefinition(
+		parsedFilesInWorkspace,
+	)
 	for fileName := range parsedFilesInWorkspace {
 		affectedFiles[fileName] = true
 	}
 
 	if len(affectedFiles) != len(parsedFilesInWorkspace) {
-		log.Printf("count of files in workspace do not match number of files found during template analysis"+
-			"\n len(affectedFiles) = %d ::: len(parsedFilesInWorkspace) = %d\n", len(affectedFiles), len(parsedFilesInWorkspace))
-		panic("count of files in workspace do not match number of files found during template analysis")
+		log.Printf(
+			"count of files in workspace do not match number of files found during template analysis"+
+				"\n len(affectedFiles) = %d ::: len(parsedFilesInWorkspace) = %d\n",
+			len(affectedFiles),
+			len(parsedFilesInWorkspace),
+		)
+		panic(
+			"count of files in workspace do not match number of files found during template analysis",
+		)
 	}
 
 	workspaceTemplateDefinition := templateManager.TemplateScopeToDefinition
@@ -324,7 +386,10 @@ func DefinitionAnalysisWithinWorkspace(parsedFilesInWorkspace map[string]*parser
 	for fileNameAffected := range affectedFiles {
 		partialFile := templateManager.AnalyzedDefinedTemplatesWithinFile[fileNameAffected].PartialFile
 
-		file, errs := checker.DefinitionAnalysisFromPartialFile(partialFile, workspaceTemplateDefinition)
+		file, errs := checker.DefinitionAnalysisFromPartialFile(
+			partialFile,
+			workspaceTemplateDefinition,
+		)
 
 		templateErrs := templateManager.AnalyzedDefinedTemplatesWithinFile[fileNameAffected].GetTemplateErrs()
 		cycleErrs := templateManager.AnalyzedDefinedTemplatesWithinFile[fileNameAffected].CycleTemplateErrs
@@ -344,7 +409,10 @@ func DefinitionAnalysisWithinWorkspace(parsedFilesInWorkspace map[string]*parser
 	return chainAnalysis
 }
 
-func GoToDefinition(file *checker.FileDefinition, position lexer.Position) (fileNames []string, reachs []lexer.Range, err error) {
+func GoToDefinition(
+	file *checker.FileDefinition,
+	position lexer.Position,
+) (fileNames []string, ranges []lexer.Range, err error) {
 	definitions := checker.FindSourceDefinitionFromPosition(file, position)
 
 	if len(definitions) == 0 {
@@ -353,14 +421,14 @@ func GoToDefinition(file *checker.FileDefinition, position lexer.Position) (file
 	}
 
 	fileNames = make([]string, 0, len(definitions))
-	reachs = make([]lexer.Range, 0, len(definitions))
+	ranges = make([]lexer.Range, 0, len(definitions))
 
 	for _, definition := range definitions {
 		fileNames = append(fileNames, definition.FileName())
-		reachs = append(reachs, definition.Range())
+		ranges = append(ranges, definition.Range())
 	}
 
-	return fileNames, reachs, nil
+	return fileNames, ranges, nil
 }
 
 func Hover(file *checker.FileDefinition, position lexer.Position) (string, lexer.Range) {
@@ -380,7 +448,10 @@ func Hover(file *checker.FileDefinition, position lexer.Position) (string, lexer
 	typeStringified, reach := checker.Hover(definition)
 
 	if typeStringified == "" {
-		log.Printf("definition exist, but type was not found\n definition = %#v\n", definition)
+		log.Printf(
+			"definition exist, but type was not found\n definition = %#v\n",
+			definition,
+		)
 		panic("definition exist, but type was not found")
 	}
 
@@ -391,7 +462,9 @@ func Hover(file *checker.FileDefinition, position lexer.Position) (string, lexer
 	return typeStringified, reach
 }
 
-func FoldingRange(rootNode *parser.GroupStatementNode) ([]*parser.GroupStatementNode, []*parser.CommentNode) {
+func FoldingRange(
+	rootNode *parser.GroupStatementNode,
+) ([]*parser.GroupStatementNode, []*parser.CommentNode) {
 	foldingGroups := make([]*parser.GroupStatementNode, 0, 10)
 	foldingComments := make([]*parser.CommentNode, 0, 10)
 	queue := make([]*parser.GroupStatementNode, 0, 10)
@@ -442,6 +515,6 @@ func HasFileExtension(fileName string, extensions []string) bool {
 
 // Print in JSON format the AST node to the screen. Use a program like 'jq' for pretty formatting
 func Print(node ...parser.AstNode) {
-	str := parser.PrettyFormater(node)
+	str := parser.PrettyAstNodeFormater(node)
 	fmt.Println(str)
 }

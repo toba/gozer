@@ -18,41 +18,37 @@ import (
 func ScanWorkspaceForFuncMap(rootPath string) (map[string]*FunctionDefinition, error) {
 	customFunctions := make(map[string]*FunctionDefinition)
 
-	walkErr := filepath.Walk(rootPath, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return nil //nolint:nilerr // intentionally skip files we can't access
-		}
-
-		// Skip directories we don't want to traverse
-		if info.IsDir() {
-			name := info.Name()
-			// Skip hidden directories, vendor, node_modules, etc.
-			if strings.HasPrefix(name, ".") || name == "vendor" || name == "node_modules" || name == "testdata" {
-				return filepath.SkipDir
+	walkErr := filepath.Walk(
+		rootPath,
+		func(path string, info os.FileInfo, err error) error {
+			// Skip files we can't access
+			if err != nil || info == nil {
+				return err
 			}
+
+			// Skip directories we don't want to traverse
+			if info.IsDir() {
+				name := info.Name()
+				// Skip hidden directories, vendor, node_modules, etc.
+				if strings.HasPrefix(name, ".") || name == "vendor" ||
+					name == "node_modules" ||
+					name == "testdata" {
+					return filepath.SkipDir
+				}
+				return nil
+			}
+
+			// Only process .go files, skip test files
+			if !strings.HasSuffix(path, ".go") || strings.HasSuffix(path, "_test.go") {
+				return nil
+			}
+
+			funcs, _ := scanFileForFuncMap(path)
+			maps.Copy(customFunctions, funcs)
+
 			return nil
-		}
-
-		// Only process .go files
-		if !strings.HasSuffix(path, ".go") {
-			return nil
-		}
-
-		// Skip test files
-		if strings.HasSuffix(path, "_test.go") {
-			return nil
-		}
-
-		funcs, scanErr := scanFileForFuncMap(path)
-		if scanErr != nil {
-			// Log but continue - don't fail on parse errors in user code
-			return nil //nolint:nilerr // intentionally ignore parse errors
-		}
-
-		maps.Copy(customFunctions, funcs)
-
-		return nil
-	})
+		},
+	)
 
 	if walkErr != nil {
 		return customFunctions, walkErr
@@ -155,7 +151,11 @@ func isFuncMapType(expr ast.Expr, templateAlias string) bool {
 }
 
 // extractFuncMapKeys extracts function names from a FuncMap composite literal.
-func extractFuncMapKeys(lit *ast.CompositeLit, funcs map[string]*FunctionDefinition, filePath string) {
+func extractFuncMapKeys(
+	lit *ast.CompositeLit,
+	funcs map[string]*FunctionDefinition,
+	filePath string,
+) {
 	for _, elt := range lit.Elts {
 		if kv, ok := elt.(*ast.KeyValueExpr); ok {
 			if key := extractStringLiteral(kv.Key); key != "" {
@@ -191,7 +191,11 @@ func isFunctionValue(expr ast.Expr) bool {
 }
 
 // addCustomFunction adds a custom function definition with a generic signature.
-func addCustomFunction(funcs map[string]*FunctionDefinition, name string, filePath string) {
+func addCustomFunction(
+	funcs map[string]*FunctionDefinition,
+	name string,
+	filePath string,
+) {
 	funcs[name] = NewCustomFunctionDefinition(name, filePath)
 }
 
@@ -199,10 +203,10 @@ func addCustomFunction(funcs map[string]*FunctionDefinition, name string, filePa
 // variadic signature: func(args ...any) any. This allows the function to accept
 // any number of arguments and return any type, which is appropriate for custom
 // template functions whose exact signatures are not known at analysis time.
-func NewCustomFunctionDefinition(name string, filePath string) *FunctionDefinition {
+func NewCustomFunctionDefinition(name, filePath string) *FunctionDefinition {
 	// Create a generic variadic signature: func(args ...any) any
 	// This allows any number of arguments and any return type
-	anyType := TYPE_ANY.Type()
+	anyType := typeAny.Type()
 	anySlice := types.NewSlice(anyType)
 	params := types.NewTuple(types.NewVar(token.NoPos, nil, "args", anySlice))
 	results := types.NewTuple(types.NewVar(token.NoPos, nil, "", anyType))

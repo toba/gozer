@@ -29,7 +29,13 @@ func (v VariableDeclarationNode) String() string {
 	}
 	str := lexer.PrettyFormater(v.VariableNames)
 
-	return fmt.Sprintf(`{"Kind": %s, "Range": %s, "VariableNames": %s, "Value": %s}`, v.kind, v.rng, str, value)
+	return fmt.Sprintf(
+		`{"Kind": %s, "Range": %s, "VariableNames": %s, "Value": %s}`,
+		v.kind,
+		v.rng,
+		str,
+		value,
+	)
 }
 
 func (v VariableAssignationNode) String() string {
@@ -40,7 +46,13 @@ func (v VariableAssignationNode) String() string {
 		value = fmt.Sprint(v.Value)
 	}
 
-	return fmt.Sprintf(`{"Kind": %s, "Range": %s, "VariableName": %s, "Value": %s}`, v.kind, v.rng, variableName, value)
+	return fmt.Sprintf(
+		`{"Kind": %s, "Range": %s, "VariableName": %s, "Value": %s}`,
+		v.kind,
+		v.rng,
+		variableName,
+		value,
+	)
 }
 
 func (m MultiExpressionNode) String() string {
@@ -89,7 +101,13 @@ func (t TemplateStatementNode) String() string {
 		expression = fmt.Sprint(t.Expression)
 	}
 
-	return fmt.Sprintf(`{"Kind": %s, "Range": %s, "templateName": %s, "expression": %s}`, t.kind, t.rng, templateName, expression)
+	return fmt.Sprintf(
+		`{"Kind": %s, "Range": %s, "templateName": %s, "expression": %s}`,
+		t.kind,
+		t.rng,
+		templateName,
+		expression,
+	)
 }
 
 func (g GroupStatementNode) String() string {
@@ -99,7 +117,13 @@ func (g GroupStatementNode) String() string {
 	}
 	str := PrettyAstNodeFormater(g.Statements)
 
-	return fmt.Sprintf(`{"Kind": %s, "Range": %s, "controlFlow": %s, "Statements": %s}`, g.kind, g.rng, strControlFlow, str)
+	return fmt.Sprintf(
+		`{"Kind": %s, "Range": %s, "controlFlow": %s, "Statements": %s}`,
+		g.kind,
+		g.rng,
+		strControlFlow,
+		str,
+	)
 }
 
 func (c CommentNode) String() string {
@@ -112,7 +136,13 @@ func (c CommentNode) String() string {
 }
 
 func (s SpecialCommandNode) String() string {
-	return fmt.Sprintf(`{"Kind": %s, "Range": %s, "Value": %s, "Err": "%s"}`, s.kind, s.rng, s.Value, s.Err)
+	return fmt.Sprintf(
+		`{"Kind": %s, "Range": %s, "Value": %s, "Err": "%s"}`,
+		s.kind,
+		s.rng,
+		s.Value,
+		s.Err,
+	)
 }
 
 func PrettyAstNodeFormater(nodes []AstNode) string {
@@ -133,7 +163,7 @@ func PrettyAstNodeFormater(nodes []AstNode) string {
 	return str
 }
 
-func PrettyFormater[E fmt.Stringer](nodes []E) string {
+func PrettyFormatter[E fmt.Stringer](nodes []E) string {
 	str := ""
 
 	if len(nodes) == 0 {
@@ -161,42 +191,42 @@ func (k Kind) String() string {
 	val := "NOT FOUND!!!!!!!"
 
 	switch k {
-	case KIND_EXPRESSION:
-		val = "KIND_EXPRESSION"
-	case KIND_MULTI_EXPRESSION:
-		val = "KIND_MULTI_EXPRESSION"
-	case KIND_VARIABLE_ASSIGNMENT:
-		val = "KIND_VARIABLE_ASSIGNMENT"
-	case KIND_VARIABLE_DECLARATION:
-		val = "KIND_VARIABLE_DECLARATION"
-	case KIND_GROUP_STATEMENT:
-		val = "KIND_GROUP_STATEMENT"
-	case KIND_COMMENT:
-		val = "KIND_COMMENT"
-	case KIND_IF:
-		val = "KIND_IF"
-	case KIND_ELSE_IF:
-		val = "KIND_ELSE_IF"
-	case KIND_ELSE:
-		val = "KIND_ELSE"
-	case KIND_WITH:
-		val = "KIND_WITH"
-	case KIND_ELSE_WITH:
-		val = "KIND_ELSE_WITH"
-	case KIND_BLOCK_TEMPLATE:
-		val = "KIND_BLOCK_TEMPLATE"
-	case KIND_RANGE_LOOP:
-		val = "KIND_RANGE_LOOP"
-	case KIND_DEFINE_TEMPLATE:
-		val = "KIND_DEFINE_TEMPLATE"
-	case KIND_USE_TEMPLATE:
-		val = "KIND_USE_TEMPLATE"
-	case KIND_END:
-		val = "KIND_END"
-	case KIND_CONTINUE:
-		val = "KIND_CONTINUE"
-	case KIND_BREAK:
-		val = "KIND_BREAK"
+	case KindExpression:
+		val = "KindExpression"
+	case KindMultiExpression:
+		val = "KindMultiExpression"
+	case KindVariableAssignment:
+		val = "KindVariableAssignment"
+	case KindVariableDeclaration:
+		val = "KindVariableDeclaration"
+	case KindGroupStatement:
+		val = "KindGroupStatement"
+	case KindComment:
+		val = "KindComment"
+	case KindIf:
+		val = "KindIf"
+	case KindElseIf:
+		val = "KindElseIf"
+	case KindElse:
+		val = "KindElse"
+	case KindWith:
+		val = "KindWith"
+	case KindElseWith:
+		val = "KindElseWith"
+	case KindBlockTemplate:
+		val = "KindBlockTemplate"
+	case KindRangeLoop:
+		val = "KindRangeLoop"
+	case KindDefineTemplate:
+		val = "KindDefineTemplate"
+	case KindUseTemplate:
+		val = "KindUseTemplate"
+	case KindEnd:
+		val = "KindEnd"
+	case KindContinue:
+		val = "KindContinue"
+	case KindBreak:
+		val = "KindBreak"
 	}
 
 	return fmt.Sprintf(`"%s"`, val)

@@ -59,6 +59,12 @@ formatters:
   enable:
     - gofmt
     - goimports
+    - golines
+
+  settings:
+    golines: # https://golangci-lint.run/docs/formatters/configuration/#golines
+      max-len: 90
+      shorten-comments: false
 
 output:
   sort-order:

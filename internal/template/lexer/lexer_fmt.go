@@ -6,7 +6,12 @@ import (
 )
 
 func (e LexerError) String() string {
-	return fmt.Sprintf(`{ "Err": "%s", "Range": %s, "Token": %s }`, e.Err.Error(), e.Range, e.Token)
+	return fmt.Sprintf(
+		`{ "Err": "%s", "Range": %s, "Token": %s }`,
+		e.Err.Error(),
+		e.Range,
+		e.Token,
+	)
 }
 
 func (p Position) String() string {
@@ -18,59 +23,75 @@ func (r Range) String() string {
 }
 
 func (t Token) String() string {
-	return fmt.Sprintf("{ \"ID\": \"%s\", \"Range\": %s, \"Value\": %q }", t.ID, t.Range, t.Value)
+	return fmt.Sprintf(
+		"{ \"ID\": \"%s\", \"Range\": %s, \"Value\": %q }",
+		t.ID,
+		t.Range,
+		t.Value,
+	)
 }
 
 func (k Kind) String() string {
 	var str string
 
 	switch k {
-	case DOT_VARIABLE:
-		str = "DOT_VARIABLE"
-	case DOLLAR_VARIABLE:
-		str = "DOLLAR_VARIABLE"
-	case KEYWORD:
-		str = "KEYWORD"
-	case FUNCTION:
-		str = "FUNCTION"
-	case IDENTIFIER:
-		str = "IDENTIFIER"
-	case ASSIGNEMENT:
-		str = "ASSIGNEMENT"
-	case DECLARATION_ASSIGNEMENT:
-		str = "DECLARATION_ASSIGNEMENT"
-	case STRING:
-		str = "STRING"
-	case NUMBER:
-		str = "NUMBER"
-	case EQUAL_COMPARISON:
-		str = "EQUAL_COMPARISON"
-	case PIPE:
-		str = "PIPE"
-	case LEFT_PAREN:
-		str = "LEFT_PAREN"
-	case RIGTH_PAREN:
-		str = "RIGTH_PAREN"
-	case COMMENT:
-		str = "COMMENT"
-	case EOL:
-		str = "EOL"
-	case NOT_FOUND:
-		str = "NOT_FOUND"
-	case UNEXPECTED:
-		str = "UNEXPECTED"
-	case COMMA:
-		str = "COMMA"
-	case STATIC_GROUP:
-		str = "STATIC_GROUP"
-	case EXPANDABLE_GROUP:
-		str = "EXPANDABLE_GROUP"
-	case CHARACTER:
-		str = "CHARACTER"
-	case COMPLEX_NUMBER:
-		str = "COMPLEX_NUMBER"
+	case DotVariable:
+		str = "DotVariable"
+	case DollarVariable:
+		str = "DollarVariable"
+	case Keyword:
+		str = "Keyword"
+	case Function:
+		str = "Function"
+	case Identifier:
+		str = "Identifier"
+	case Assignment:
+		str = "Assignment"
+	case DeclarationAssignment:
+		str = "DeclarationAssignment"
+	case StringLit:
+		str = "StringLit"
+	case Number:
+		str = "Number"
+	case EqualComparison:
+		str = "EqualComparison"
+	case Pipe:
+		str = "Pipe"
+	case LeftParen:
+		str = "LeftParen"
+	case RightParen:
+		str = "RightParen"
+	case Comment:
+		str = "Comment"
+	case Eol:
+		str = "Eol"
+	case NotFound:
+		str = "NotFound"
+	case Unexpected:
+		str = "Unexpected"
+	case Comma:
+		str = "Comma"
+	case StaticGroup:
+		str = "StaticGroup"
+	case ExpandableGroup:
+		str = "ExpandableGroup"
+	case Character:
+		str = "Character"
+	case ComplexNumber:
+		str = "ComplexNumber"
+	case Decimal:
+		str = "Decimal"
+	case Boolean:
+		str = "Boolean"
+	case SpaceEater:
+		str = "SpaceEater"
+	case Eof:
+		str = "Eof"
 	default:
-		str = fmt.Sprintf("stringer() for 'lexer.Kind' type have found an unpected value: %d", k)
+		str = fmt.Sprintf(
+			"stringer() for 'lexer.Kind' type have found an unpected value: %d",
+			k,
+		)
 		panic(str)
 	}
 

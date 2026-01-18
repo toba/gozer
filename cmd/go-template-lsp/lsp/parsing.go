@@ -79,7 +79,9 @@ func getHeaderContentLength(data []byte) (int, error) {
 		indexLineSeparator = len(data)
 	}
 
-	indexKeyValueSeparator := bytes.Index(data[indexHeader:indexLineSeparator], []byte(":"))
+	indexKeyValueSeparator := bytes.Index(
+		data[indexHeader:indexLineSeparator], []byte(":"),
+	)
 	if indexKeyValueSeparator == -1 {
 		return -1, errors.New("malformed 'Content-Length' header: missing ':'")
 	}
@@ -91,7 +93,9 @@ func getHeaderContentLength(data []byte) (int, error) {
 
 	contentLength, err := strconv.Atoi(string(contentLengthString))
 	if err != nil {
-		return -1, errors.New("malformed 'Content-Length' header: value is not an integer")
+		return -1, errors.New(
+			"malformed 'Content-Length' header: value is not an integer",
+		)
 	}
 
 	if contentLength < 0 {

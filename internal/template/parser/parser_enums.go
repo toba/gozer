@@ -5,28 +5,28 @@ package parser
 // -----------
 
 const (
-	KIND_VARIABLE_DECLARATION Kind = iota
-	KIND_VARIABLE_ASSIGNMENT
-	KIND_EXPRESSION
-	KIND_MULTI_EXPRESSION
-	KIND_COMMENT
+	KindVariableDeclaration Kind = iota
+	KindVariableAssignment
+	KindExpression
+	KindMultiExpression
+	KindComment
 
-	KIND_GROUP_STATEMENT
+	KindGroupStatement
 
-	KIND_IF
-	KIND_ELSE_IF
-	KIND_ELSE
+	KindIf
+	KindElseIf
+	KindElse
 
-	KIND_WITH
-	KIND_ELSE_WITH
+	KindWith
+	KindElseWith
 
-	KIND_RANGE_LOOP
+	KindRangeLoop
 
-	KIND_DEFINE_TEMPLATE
-	KIND_BLOCK_TEMPLATE
-	KIND_USE_TEMPLATE
+	KindDefineTemplate
+	KindBlockTemplate
+	KindUseTemplate
 
-	KIND_END
-	KIND_CONTINUE
-	KIND_BREAK
+	KindEnd
+	KindContinue
+	KindBreak
 )

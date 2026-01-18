@@ -84,7 +84,13 @@ func main() {
 	textFromClient := make(map[string][]byte)
 	muTextFromClient := new(sync.Mutex)
 
-	go processDiagnosticNotification(storage, rootPathNotification, textChangedNotification, textFromClient, muTextFromClient)
+	go processDiagnosticNotification(
+		storage,
+		rootPathNotification,
+		textChangedNotification,
+		textFromClient,
+		muTextFromClient,
+	)
 
 	var request lsp.RequestMessage[any]
 	var response []byte
@@ -97,7 +103,10 @@ func main() {
 		slog.String("server_name", serverName),
 		slog.String("server_version", version),
 	)
-	defer slog.Info("shutting down lsp server", getServerGroupLogging(storage, serverCounter, request, textFromClient))
+	defer slog.Info(
+		"shutting down lsp server",
+		getServerGroupLogging(storage, &serverCounter, request, textFromClient),
+	)
 
 	for scanner.Scan() {
 		data := scanner.Bytes()
@@ -107,13 +116,19 @@ func main() {
 			if request.Method == "exit" {
 				break
 			} else {
-				response = lsp.ProcessIllegalRequestAfterShutdown(request.JsonRpc, request.Id)
+				response = lsp.ProcessIllegalRequestAfterShutdown(
+					request.JsonRpc,
+					request.Id,
+				)
 				lsp.SendToLspClient(os.Stdout, response)
 			}
 			continue
 		}
 
-		slog.Info("request "+request.Method, getServerGroupLogging(storage, serverCounter, request, textFromClient))
+		slog.Info(
+			"request "+request.Method,
+			getServerGroupLogging(storage, &serverCounter, request, textFromClient),
+		)
 
 		switch request.Method {
 		case "initialize":
@@ -139,13 +154,25 @@ func main() {
 			serverCounter.TextDocument.DidOpen++
 			isRequestResponse = false
 			fileURI, fileContent = lsp.ProcessDidOpenTextDocumentNotification(data)
-			insertTextDocumentToDiagnostic(fileURI, fileContent, textChangedNotification, textFromClient, muTextFromClient)
+			insertTextDocumentToDiagnostic(
+				fileURI,
+				fileContent,
+				textChangedNotification,
+				textFromClient,
+				muTextFromClient,
+			)
 
 		case "textDocument/didChange":
 			serverCounter.TextDocument.DidChange++
 			isRequestResponse = false
 			fileURI, fileContent = lsp.ProcessDidChangeTextDocumentNotification(data)
-			insertTextDocumentToDiagnostic(fileURI, fileContent, textChangedNotification, textFromClient, muTextFromClient)
+			insertTextDocumentToDiagnostic(
+				fileURI,
+				fileContent,
+				textChangedNotification,
+				textFromClient,
+				muTextFromClient,
+			)
 
 		case "textDocument/didClose":
 			serverCounter.TextDocument.DidClose++
@@ -158,12 +185,21 @@ func main() {
 		case "textDocument/definition":
 			serverCounter.Definition++
 			isRequestResponse = true
-			response, _ = lsp.ProcessGoToDefinition(data, storage.OpenedFilesAnalyzed, storage.RawFiles)
+			response, _ = lsp.ProcessGoToDefinition(
+				data,
+				storage.OpenedFilesAnalyzed,
+				storage.RawFiles,
+			)
 
 		case "textDocument/foldingRange":
 			serverCounter.FoldingRange++
 			isRequestResponse = true
-			response, _ = lsp.ProcessFoldingRangeRequest(data, storage.ParsedFiles, textFromClient, muTextFromClient)
+			response, _ = lsp.ProcessFoldingRangeRequest(
+				data,
+				storage.ParsedFiles,
+				textFromClient,
+				muTextFromClient,
+			)
 
 		default:
 			serverCounter.Other++
@@ -199,7 +235,13 @@ func main() {
 }
 
 // insertTextDocumentToDiagnostic queues a document for diagnostic processing.
-func insertTextDocumentToDiagnostic(uri string, content []byte, textChangedNotification chan bool, textFromClient map[string][]byte, muTextFromClient *sync.Mutex) {
+func insertTextDocumentToDiagnostic(
+	uri string,
+	content []byte,
+	textChangedNotification chan bool,
+	textFromClient map[string][]byte,
+	muTextFromClient *sync.Mutex,
+) {
 	if uri == "" {
 		return
 	}
@@ -246,7 +288,13 @@ func notifyTheRootPath(rootPathNotification chan string, rootURI string) {
 }
 
 // processDiagnosticNotification runs diagnostics and sends notifications to the client.
-func processDiagnosticNotification(storage *workspaceStore, rootPathNotification chan string, textChangedNotification chan bool, textFromClient map[string][]byte, muTextFromClient *sync.Mutex) {
+func processDiagnosticNotification(
+	storage *workspaceStore,
+	rootPathNotification chan string,
+	textChangedNotification chan bool,
+	textFromClient map[string][]byte,
+	muTextFromClient *sync.Mutex,
+) {
 	if rootPathNotification == nil || textChangedNotification == nil {
 		msg := "channels for 'processDiagnosticNotification()' not properly initialized"
 		slog.Error(msg)
@@ -272,14 +320,20 @@ func processDiagnosticNotification(storage *workspaceStore, rootPathNotification
 	// Scan for custom template functions defined in Go source files
 	customFuncs, err := tmpl.ScanWorkspaceForFuncMap(rootPath)
 	if err != nil {
-		slog.Warn("failed to scan for custom template functions", slog.String("error", err.Error()))
+		slog.Warn(
+			"failed to scan for custom template functions",
+			slog.String("error", err.Error()),
+		)
 	} else if len(customFuncs) > 0 {
 		tmpl.SetWorkspaceCustomFunctions(customFuncs)
 		funcNames := make([]string, 0, len(customFuncs))
 		for name := range customFuncs {
 			funcNames = append(funcNames, name)
 		}
-		slog.Info("discovered custom template functions", slog.Any("functions", funcNames))
+		slog.Info(
+			"discovered custom template functions",
+			slog.Any("functions", funcNames),
+		)
 	}
 
 	storage.RootPath = rootPath
@@ -368,7 +422,9 @@ func processDiagnosticNotification(storage *workspaceStore, rootPathNotification
 		if len(cloneTextFromClient) == len(storage.ParsedFiles) {
 			chainedFiles = tmpl.DefinitionAnalysisWithinWorkspace(storage.ParsedFiles)
 		} else if len(cloneTextFromClient) > 0 {
-			chainedFiles = tmpl.DefinitionAnalysisChainTriggeredByBatchFileChange(storage.ParsedFiles, namesOfFileChanged...)
+			chainedFiles = tmpl.DefinitionAnalysisChainTriggeredByBatchFileChange(
+				storage.ParsedFiles,
+				namesOfFileChanged...)
 		}
 
 		for _, fileAnalyzed := range chainedFiles {
@@ -378,7 +434,11 @@ func processDiagnosticNotification(storage *workspaceStore, rootPathNotification
 		}
 
 		for uri := range storage.OpenedFilesAnalyzed {
-			errs := make([]tmpl.Error, 0, len(storage.ErrorsParsedFiles[uri])+len(storage.ErrorsAnalyzedFiles[uri]))
+			errs := make(
+				[]tmpl.Error,
+				0,
+				len(storage.ErrorsParsedFiles[uri])+len(storage.ErrorsAnalyzedFiles[uri]),
+			)
 			errs = append(errs, storage.ErrorsParsedFiles[uri]...)
 			errs = append(errs, storage.ErrorsAnalyzedFiles[uri]...)
 
@@ -448,7 +508,7 @@ func storageSanityCheck(storage *workspaceStore) {
 }
 
 // isFileInsideWorkspace checks if a file is inside the workspace and has allowed extension.
-func isFileInsideWorkspace(uri string, rootPath string, allowedFileExtensions []string) bool {
+func isFileInsideWorkspace(uri, rootPath string, allowedFileExtensions []string) bool {
 	path := uri
 	rootPath = filePathToUri(rootPath)
 
@@ -460,14 +520,19 @@ func isFileInsideWorkspace(uri string, rootPath string, allowedFileExtensions []
 }
 
 // clearPushDiagnosticNotification clears the diagnostics in a notification.
-func clearPushDiagnosticNotification(notification *lsp.NotificationMessage[lsp.PublishDiagnosticsParams]) *lsp.NotificationMessage[lsp.PublishDiagnosticsParams] {
+func clearPushDiagnosticNotification(
+	notification *lsp.NotificationMessage[lsp.PublishDiagnosticsParams],
+) *lsp.NotificationMessage[lsp.PublishDiagnosticsParams] {
 	notification.Params.Diagnostics = []lsp.Diagnostic{}
 	notification.Params.Uri = ""
 	return notification
 }
 
 // setParseErrorsToDiagnosticsNotification adds parse errors to a notification.
-func setParseErrorsToDiagnosticsNotification(errs []tmpl.Error, response *lsp.NotificationMessage[lsp.PublishDiagnosticsParams]) *lsp.NotificationMessage[lsp.PublishDiagnosticsParams] {
+func setParseErrorsToDiagnosticsNotification(
+	errs []tmpl.Error,
+	response *lsp.NotificationMessage[lsp.PublishDiagnosticsParams],
+) *lsp.NotificationMessage[lsp.PublishDiagnosticsParams] {
 	if response == nil {
 		msg := "diagnostics errors cannot be appended on nil response"
 		slog.Error(msg)
@@ -622,14 +687,16 @@ func createLogFile() *os.File {
 
 	fileInfo, err := os.Stat(logFilePath)
 	if err == nil && fileInfo.Size() >= 5_000_000 {
-		file, err := os.OpenFile(logFilePath, os.O_TRUNC|os.O_WRONLY, 0600) //nolint:gosec // safe log file path
+		//nolint:gosec // safe log file path
+		file, err := os.OpenFile(logFilePath, os.O_TRUNC|os.O_WRONLY, 0600)
 		if err != nil {
 			return os.Stdout
 		}
 		return file
 	}
 
-	file, err := os.OpenFile(logFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600) //nolint:gosec // safe log file path
+	//nolint:gosec // safe log file path
+	file, err := os.OpenFile(logFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
 	if err != nil {
 		return os.Stdout
 	}
@@ -649,7 +716,12 @@ func configureLogging() {
 }
 
 // getServerGroupLogging returns a structured logging group with server state.
-func getServerGroupLogging[T any](storage *workspaceStore, counter requestCounter, request lsp.RequestMessage[T], textFromClient map[string][]byte) slog.Attr {
+func getServerGroupLogging[T any](
+	storage *workspaceStore,
+	counter *requestCounter,
+	request lsp.RequestMessage[T],
+	textFromClient map[string][]byte,
+) slog.Attr {
 	return slog.Group("server",
 		slog.String("root_path", storage.RootPath),
 		slog.Any("last_request", request),

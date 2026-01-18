@@ -31,11 +31,11 @@ type VariableDeclarationNode struct {
 	Err           *ParseError
 }
 
-func (v VariableDeclarationNode) Kind() Kind {
+func (v *VariableDeclarationNode) Kind() Kind {
 	return v.kind
 }
 
-func (v VariableDeclarationNode) Range() lexer.Range {
+func (v *VariableDeclarationNode) Range() lexer.Range {
 	return v.rng
 }
 
@@ -47,7 +47,7 @@ func (v *VariableDeclarationNode) SetKind(val Kind) {
 	v.kind = val
 }
 
-func (v VariableDeclarationNode) Error() *ParseError {
+func (v *VariableDeclarationNode) Error() *ParseError {
 	return v.Err
 }
 
@@ -55,7 +55,11 @@ func (v *VariableDeclarationNode) SetError(err *ParseError) {
 	v.Err = err
 }
 
-func NewVariableDeclarationNode(kind Kind, start, end lexer.Position, err *ParseError) *VariableDeclarationNode {
+func NewVariableDeclarationNode(
+	kind Kind,
+	start, end lexer.Position,
+	err *ParseError,
+) *VariableDeclarationNode {
 	node := &VariableDeclarationNode{
 		kind: kind,
 		rng:  lexer.Range{Start: start, End: end},
@@ -73,11 +77,11 @@ type VariableAssignationNode struct {
 	Err           *ParseError
 }
 
-func (v VariableAssignationNode) Kind() Kind {
+func (v *VariableAssignationNode) Kind() Kind {
 	return v.kind
 }
 
-func (v VariableAssignationNode) Range() lexer.Range {
+func (v *VariableAssignationNode) Range() lexer.Range {
 	return v.rng
 }
 
@@ -89,7 +93,7 @@ func (v *VariableAssignationNode) SetKind(val Kind) {
 	v.kind = val
 }
 
-func (v VariableAssignationNode) Error() *ParseError {
+func (v *VariableAssignationNode) Error() *ParseError {
 	return v.Err
 }
 
@@ -97,7 +101,11 @@ func (v *VariableAssignationNode) SetError(err *ParseError) {
 	v.Err = err
 }
 
-func NewVariableAssignmentNode(kind Kind, start, end lexer.Position, err *ParseError) *VariableAssignationNode {
+func NewVariableAssignmentNode(
+	kind Kind,
+	start, end lexer.Position,
+	err *ParseError,
+) *VariableAssignationNode {
 	node := &VariableAssignationNode{
 		kind:  kind,
 		rng:   lexer.Range{Start: start, End: end},
@@ -139,7 +147,11 @@ func (m *MultiExpressionNode) SetError(err *ParseError) {
 	m.Err = err
 }
 
-func NewMultiExpressionNode(kind Kind, start, end lexer.Position, err *ParseError) *MultiExpressionNode {
+func NewMultiExpressionNode(
+	kind Kind,
+	start, end lexer.Position,
+	err *ParseError,
+) *MultiExpressionNode {
 	node := &MultiExpressionNode{
 		kind: kind,
 		rng:  lexer.Range{Start: start, End: end},
@@ -157,11 +169,11 @@ type ExpressionNode struct {
 	Err            *ParseError
 }
 
-func (v ExpressionNode) Kind() Kind {
+func (v *ExpressionNode) Kind() Kind {
 	return v.kind
 }
 
-func (v ExpressionNode) Range() lexer.Range {
+func (v *ExpressionNode) Range() lexer.Range {
 	return v.rng
 }
 
@@ -173,7 +185,7 @@ func (v *ExpressionNode) SetKind(val Kind) {
 	v.kind = val
 }
 
-func (v ExpressionNode) Error() *ParseError {
+func (v *ExpressionNode) Error() *ParseError {
 	return v.Err
 }
 
@@ -203,7 +215,7 @@ type TemplateStatementNode struct {
 	Err          *ParseError
 }
 
-func (t TemplateStatementNode) Kind() Kind {
+func (t *TemplateStatementNode) Kind() Kind {
 	return t.kind
 }
 
@@ -211,7 +223,7 @@ func (t *TemplateStatementNode) SetKind(val Kind) {
 	t.kind = val
 }
 
-func (t TemplateStatementNode) Range() lexer.Range {
+func (t *TemplateStatementNode) Range() lexer.Range {
 	return t.rng
 }
 
@@ -219,11 +231,11 @@ func (t *TemplateStatementNode) SetRange(reach lexer.Range) {
 	t.rng = reach
 }
 
-func (t TemplateStatementNode) Parent() *GroupStatementNode {
+func (t *TemplateStatementNode) Parent() *GroupStatementNode {
 	return t.parent
 }
 
-func (t TemplateStatementNode) Error() *ParseError {
+func (t *TemplateStatementNode) Error() *ParseError {
 	return t.Err
 }
 
@@ -266,7 +278,11 @@ type GroupStatementNode struct {
 	isRoot             bool // only this is consistently enforced to determine whether a node is ROOT or not
 }
 
-func NewGroupStatementNode(kind Kind, scopeRange lexer.Range, tokenStream *lexer.StreamToken) *GroupStatementNode {
+func NewGroupStatementNode(
+	kind Kind,
+	scopeRange lexer.Range,
+	tokenStream *lexer.StreamToken,
+) *GroupStatementNode {
 	scope := &GroupStatementNode{
 		kind:               kind,
 		rng:                scopeRange,
@@ -283,11 +299,11 @@ func NewGroupStatementNode(kind Kind, scopeRange lexer.Range, tokenStream *lexer
 	return scope
 }
 
-func (g GroupStatementNode) Kind() Kind {
+func (g *GroupStatementNode) Kind() Kind {
 	return g.kind
 }
 
-func (g GroupStatementNode) Range() lexer.Range {
+func (g *GroupStatementNode) Range() lexer.Range {
 	return g.rng
 }
 
@@ -299,15 +315,15 @@ func (g *GroupStatementNode) SetKind(val Kind) {
 	g.kind = val
 }
 
-func (g GroupStatementNode) Parent() *GroupStatementNode {
+func (g *GroupStatementNode) Parent() *GroupStatementNode {
 	return g.parent
 }
 
-func (g GroupStatementNode) IsRoot() bool {
+func (g *GroupStatementNode) IsRoot() bool {
 	return g.isRoot
 }
 
-func (g GroupStatementNode) Error() *ParseError {
+func (g *GroupStatementNode) Error() *ParseError {
 	return g.Err
 }
 
@@ -315,26 +331,36 @@ func (g *GroupStatementNode) SetError(err *ParseError) {
 	g.Err = err
 }
 
-func (g GroupStatementNode) TemplateNameToken() *lexer.Token {
+func (g *GroupStatementNode) TemplateNameToken() *lexer.Token {
 	if !g.IsTemplate() {
-		log.Printf("impossible to find the template name because the node in question is not a template definition\n group = %#v", g)
-		panic("impossible to find the template name because the node in question is not a template definition")
+		log.Printf(
+			"impossible to find the template name because the node in question is not a template definition\n group = %#v",
+			g,
+		)
+		panic(
+			"impossible to find the template name because the node in question is not a template definition",
+		)
 	}
 
 	templateNode := g.ControlFlow.(*TemplateStatementNode)
 	if templateNode == nil {
-		log.Println("template contains structure, and expected a valid 'ControlFlow' but instead got <nil>\n group = ", g)
-		panic("template contains structure, and expected a valid 'ControlFlow' but instead got <nil>")
+		log.Println(
+			"template contains structure, and expected a valid 'ControlFlow' but instead got <nil>\n group = ",
+			g,
+		)
+		panic(
+			"template contains structure, and expected a valid 'ControlFlow' but instead got <nil>",
+		)
 	}
 
 	return templateNode.TemplateName
 }
 
-func (g GroupStatementNode) TemplateName() string {
+func (g *GroupStatementNode) TemplateName() string {
 	return string(g.TemplateNameToken().Value)
 }
 
-func (g GroupStatementNode) IsTemplate() bool {
+func (g *GroupStatementNode) IsTemplate() bool {
 	if !IsGroupNode(g.kind) {
 		return false
 	}
@@ -369,17 +395,17 @@ func (g GroupStatementNode) IsTemplate() bool {
 // IsGroupNode returns true if the kind is a group node type.
 func IsGroupNode(kind Kind) bool {
 	ok := false
-	ok = ok || kind == KIND_GROUP_STATEMENT
-	ok = ok || kind == KIND_DEFINE_TEMPLATE
-	ok = ok || kind == KIND_BLOCK_TEMPLATE
+	ok = ok || kind == KindGroupStatement
+	ok = ok || kind == KindDefineTemplate
+	ok = ok || kind == KindBlockTemplate
 
 	return ok
 }
 
-func (g GroupStatementNode) IsGroupWithControlFlow() bool {
+func (g *GroupStatementNode) IsGroupWithControlFlow() bool {
 	switch g.kind {
-	case KIND_IF, KIND_ELSE_IF, KIND_RANGE_LOOP, KIND_WITH,
-		KIND_ELSE_WITH, KIND_DEFINE_TEMPLATE, KIND_BLOCK_TEMPLATE:
+	case KindIf, KindElseIf, KindRangeLoop, KindWith,
+		KindElseWith, KindDefineTemplate, KindBlockTemplate:
 
 		return true
 	}
@@ -387,9 +413,9 @@ func (g GroupStatementNode) IsGroupWithControlFlow() bool {
 	return false
 }
 
-func (g GroupStatementNode) IsGroupWithNoVariableReset() bool {
+func (g *GroupStatementNode) IsGroupWithNoVariableReset() bool {
 	switch g.kind {
-	case KIND_IF, KIND_ELSE, KIND_ELSE_IF, KIND_END:
+	case KindIf, KindElse, KindElseIf, KindEnd:
 
 		return true
 	}
@@ -397,9 +423,9 @@ func (g GroupStatementNode) IsGroupWithNoVariableReset() bool {
 	return false
 }
 
-func (g GroupStatementNode) IsGroupWithDotVariableReset() bool {
+func (g *GroupStatementNode) IsGroupWithDotVariableReset() bool {
 	switch g.kind {
-	case KIND_RANGE_LOOP, KIND_WITH, KIND_ELSE_WITH:
+	case KindRangeLoop, KindWith, KindElseWith:
 
 		return true
 	}
@@ -407,9 +433,9 @@ func (g GroupStatementNode) IsGroupWithDotVariableReset() bool {
 	return false
 }
 
-func (g GroupStatementNode) IsGroupWithDollarAndDotVariableReset() bool {
+func (g *GroupStatementNode) IsGroupWithDollarAndDotVariableReset() bool {
 	switch g.kind {
-	case KIND_DEFINE_TEMPLATE, KIND_BLOCK_TEMPLATE, KIND_GROUP_STATEMENT:
+	case KindDefineTemplate, KindBlockTemplate, KindGroupStatement:
 		return true
 	}
 
@@ -481,7 +507,11 @@ func (s *SpecialCommandNode) SetError(err *ParseError) {
 	s.Err = err
 }
 
-func NewSpecialCommandNode(kind Kind, val *lexer.Token, reach lexer.Range) *SpecialCommandNode {
+func NewSpecialCommandNode(
+	kind Kind,
+	val *lexer.Token,
+	reach lexer.Range,
+) *SpecialCommandNode {
 	node := &SpecialCommandNode{
 		kind:  kind,
 		rng:   reach,
