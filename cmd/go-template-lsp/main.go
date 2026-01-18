@@ -318,7 +318,7 @@ func processDiagnosticNotification(
 	rootPath = uriToFilePath(rootPath)
 
 	// Scan for custom template functions defined in Go source files
-	customFuncs, err := tmpl.ScanWorkspaceForFuncMap(rootPath)
+	customFuncs, err := analyzer.ScanWorkspaceForFuncMap(rootPath)
 	if err != nil {
 		slog.Warn(
 			"failed to scan for custom template functions",

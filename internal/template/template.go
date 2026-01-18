@@ -84,14 +84,6 @@ func GetWorkspaceCustomFunctions() map[string]*checker.FunctionDefinition {
 	return workspaceCustomFunctions
 }
 
-// ScanWorkspaceForFuncMap scans Go source files in the given root path for
-// template.FuncMap definitions and returns the discovered custom functions.
-func ScanWorkspaceForFuncMap(
-	rootPath string,
-) (map[string]*checker.FunctionDefinition, error) {
-	return checker.ScanWorkspaceForFuncMap(rootPath)
-}
-
 // OpenProjectFiles recursively opens files from 'rootDir'.
 // There is a depth limit for the recursion (current MAX_DEPTH = 5).
 func OpenProjectFiles(rootDir string, withFileExtensions []string) map[string][]byte {
@@ -195,6 +187,70 @@ func ParseFilesInWorkspace(
 	return parsedFilesInWorkspace, errs
 }
 
+// analyzeAffectedFiles performs definition analysis on a set of affected files.
+// This is the common core loop extracted from the analysis chain functions.
+func analyzeAffectedFiles(
+	affectedFiles map[string]bool,
+	templateManager *checker.WorkspaceTemplateManager,
+	workspaceTemplateDefinition map[*parser.GroupStatementNode]*checker.TemplateDefinition,
+) []FileAnalysisAndError {
+	chainAnalysis := make([]FileAnalysisAndError, 0, len(affectedFiles))
+
+	for fileNameAffected := range affectedFiles {
+		partialFile := templateManager.AnalyzedDefinedTemplatesWithinFile[fileNameAffected].PartialFile
+
+		file, errs := checker.DefinitionAnalysisFromPartialFile(
+			partialFile,
+			workspaceTemplateDefinition,
+		)
+
+		// Append template and cycle errors
+		errs = appendAnalysisErrors(
+			errs,
+			templateManager,
+			fileNameAffected,
+		)
+
+		chainAnalysis = append(chainAnalysis, FileAnalysisAndError{
+			FileName: fileNameAffected,
+			File:     file,
+			Errs:     errs,
+		})
+	}
+
+	return chainAnalysis
+}
+
+// appendAnalysisErrors appends template and cycle errors from the template manager.
+func appendAnalysisErrors(
+	errs []lexer.Error,
+	templateManager *checker.WorkspaceTemplateManager,
+	fileName string,
+) []lexer.Error {
+	templateErrs := templateManager.AnalyzedDefinedTemplatesWithinFile[fileName].GetTemplateErrs()
+	cycleErrs := templateManager.AnalyzedDefinedTemplatesWithinFile[fileName].CycleTemplateErrs
+
+	errs = append(errs, templateErrs...)
+	errs = append(errs, cycleErrs...)
+
+	return errs
+}
+
+// validateFileInWorkspace checks that a file exists in the workspace and panics if not.
+func validateFileInWorkspace(
+	fileName string,
+	parsedFilesInWorkspace map[string]*parser.GroupStatementNode,
+) {
+	if parsedFilesInWorkspace[fileName] == nil {
+		log.Printf(
+			"file '%s' is unavailable in the current workspace\n parsedFilesInWorkspace = %#v\n",
+			fileName,
+			parsedFilesInWorkspace,
+		)
+		panic("file '" + fileName + "' is unavailable in the current workspace")
+	}
+}
+
 // DefinitionAnalysisSingleFile performs semantic analysis on a single file.
 // Use DefinitionAnalysisChainTriggeredBySingleFileChange instead for better performance.
 func DefinitionAnalysisSingleFile(
@@ -205,14 +261,7 @@ func DefinitionAnalysisSingleFile(
 		return nil, nil
 	}
 
-	if parsedFilesInWorkspace[fileName] == nil {
-		log.Printf(
-			"file '%s' is unavailable in the current workspace\n parsedFilesInWorkspace = %#v\n",
-			fileName,
-			parsedFilesInWorkspace,
-		)
-		panic("file '" + fileName + "' is unavailable in the current workspace")
-	}
+	validateFileInWorkspace(fileName, parsedFilesInWorkspace)
 
 	templateManager := checker.TemplateManager
 	templateManager.RemoveTemplateScopeAssociatedToFileName(fileName)
@@ -220,8 +269,6 @@ func DefinitionAnalysisSingleFile(
 	_ = templateManager.BuildWorkspaceTemplateDefinition(parsedFilesInWorkspace)
 
 	workspaceTemplateDefinition := templateManager.TemplateScopeToDefinition
-	templateErrs := templateManager.AnalyzedDefinedTemplatesWithinFile[fileName].GetTemplateErrs()
-	cycleErrs := templateManager.AnalyzedDefinedTemplatesWithinFile[fileName].CycleTemplateErrs
 	partialFile := templateManager.AnalyzedDefinedTemplatesWithinFile[fileName].PartialFile
 
 	file, errs := checker.DefinitionAnalysisFromPartialFile(
@@ -229,8 +276,7 @@ func DefinitionAnalysisSingleFile(
 		workspaceTemplateDefinition,
 	)
 
-	errs = append(errs, templateErrs...)
-	errs = append(errs, cycleErrs...)
+	errs = appendAnalysisErrors(errs, templateManager, fileName)
 
 	return file, errs
 }
@@ -244,14 +290,7 @@ func DefinitionAnalysisChainTriggeredBySingleFileChange(
 		return nil
 	}
 
-	if parsedFilesInWorkspace[fileName] == nil {
-		log.Printf(
-			"file '%s' is unavailable in the current workspace\n parsedFilesInWorkspace = %#v\n",
-			fileName,
-			parsedFilesInWorkspace,
-		)
-		panic("file '" + fileName + "' is unavailable in the current workspace")
-	}
+	validateFileInWorkspace(fileName, parsedFilesInWorkspace)
 
 	templateManager := checker.TemplateManager
 	templateManager.RemoveTemplateScopeAssociatedToFileName(fileName)
@@ -261,33 +300,11 @@ func DefinitionAnalysisChainTriggeredBySingleFileChange(
 	)
 	affectedFiles[fileName] = true
 
-	workspaceTemplateDefinition := templateManager.TemplateScopeToDefinition
-	chainAnalysis := make([]FileAnalysisAndError, 0, len(affectedFiles))
-
-	for fileNameAffected := range affectedFiles {
-		partialFile := templateManager.AnalyzedDefinedTemplatesWithinFile[fileNameAffected].PartialFile
-
-		file, errs := checker.DefinitionAnalysisFromPartialFile(
-			partialFile,
-			workspaceTemplateDefinition,
-		)
-
-		templateErrs := templateManager.AnalyzedDefinedTemplatesWithinFile[fileNameAffected].GetTemplateErrs()
-		cycleErrs := templateManager.AnalyzedDefinedTemplatesWithinFile[fileNameAffected].CycleTemplateErrs
-
-		errs = append(errs, templateErrs...)
-		errs = append(errs, cycleErrs...)
-
-		group := FileAnalysisAndError{
-			FileName: fileNameAffected,
-			File:     file,
-			Errs:     errs,
-		}
-
-		chainAnalysis = append(chainAnalysis, group)
-	}
-
-	return chainAnalysis
+	return analyzeAffectedFiles(
+		affectedFiles,
+		templateManager,
+		templateManager.TemplateScopeToDefinition,
+	)
 }
 
 // DefinitionAnalysisChainTriggeredByBatchFileChange computes semantic analysis for multiple file changes.
@@ -303,15 +320,7 @@ func DefinitionAnalysisChainTriggeredByBatchFileChange(
 	nameOfFileChanged := make(map[string]bool)
 
 	for _, fileName := range fileNames {
-		if parsedFilesInWorkspace[fileName] == nil {
-			log.Printf(
-				"file '%s' is unavailable in the current workspace\n parsedFilesInWorkspace = %#v\n",
-				fileName,
-				parsedFilesInWorkspace,
-			)
-			panic("file '" + fileName + "' is unavailable in the current workspace")
-		}
-
+		validateFileInWorkspace(fileName, parsedFilesInWorkspace)
 		templateManager.RemoveTemplateScopeAssociatedToFileName(fileName)
 		nameOfFileChanged[fileName] = true
 	}
@@ -321,33 +330,11 @@ func DefinitionAnalysisChainTriggeredByBatchFileChange(
 	)
 	maps.Copy(affectedFiles, nameOfFileChanged)
 
-	workspaceTemplateDefinition := templateManager.TemplateScopeToDefinition
-	chainAnalysis := make([]FileAnalysisAndError, 0, len(affectedFiles))
-
-	for fileNameAffected := range affectedFiles {
-		partialFile := templateManager.AnalyzedDefinedTemplatesWithinFile[fileNameAffected].PartialFile
-
-		file, errs := checker.DefinitionAnalysisFromPartialFile(
-			partialFile,
-			workspaceTemplateDefinition,
-		)
-
-		templateErrs := templateManager.AnalyzedDefinedTemplatesWithinFile[fileNameAffected].GetTemplateErrs()
-		cycleErrs := templateManager.AnalyzedDefinedTemplatesWithinFile[fileNameAffected].CycleTemplateErrs
-
-		errs = append(errs, templateErrs...)
-		errs = append(errs, cycleErrs...)
-
-		group := FileAnalysisAndError{
-			FileName: fileNameAffected,
-			File:     file,
-			Errs:     errs,
-		}
-
-		chainAnalysis = append(chainAnalysis, group)
-	}
-
-	return chainAnalysis
+	return analyzeAffectedFiles(
+		affectedFiles,
+		templateManager,
+		templateManager.TemplateScopeToDefinition,
+	)
 }
 
 // DefinitionAnalysisWithinWorkspace performs definition analysis for all files in a workspace.
@@ -380,33 +367,11 @@ func DefinitionAnalysisWithinWorkspace(
 		)
 	}
 
-	workspaceTemplateDefinition := templateManager.TemplateScopeToDefinition
-	chainAnalysis := make([]FileAnalysisAndError, 0, len(affectedFiles))
-
-	for fileNameAffected := range affectedFiles {
-		partialFile := templateManager.AnalyzedDefinedTemplatesWithinFile[fileNameAffected].PartialFile
-
-		file, errs := checker.DefinitionAnalysisFromPartialFile(
-			partialFile,
-			workspaceTemplateDefinition,
-		)
-
-		templateErrs := templateManager.AnalyzedDefinedTemplatesWithinFile[fileNameAffected].GetTemplateErrs()
-		cycleErrs := templateManager.AnalyzedDefinedTemplatesWithinFile[fileNameAffected].CycleTemplateErrs
-
-		errs = append(errs, templateErrs...)
-		errs = append(errs, cycleErrs...)
-
-		group := FileAnalysisAndError{
-			FileName: fileNameAffected,
-			File:     file,
-			Errs:     errs,
-		}
-
-		chainAnalysis = append(chainAnalysis, group)
-	}
-
-	return chainAnalysis
+	return analyzeAffectedFiles(
+		affectedFiles,
+		templateManager,
+		templateManager.TemplateScopeToDefinition,
+	)
 }
 
 func GoToDefinition(
