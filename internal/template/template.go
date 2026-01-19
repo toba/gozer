@@ -471,6 +471,68 @@ func FoldingRange(
 	return foldingGroups, foldingComments
 }
 
+// DocumentHighlight returns the keyword ranges of all linked control flow keywords
+// when the cursor is on one of them. For example, if the cursor is on {{if}}, {{else}},
+// or {{end}}, all related keywords in the same control flow block are highlighted.
+func DocumentHighlight(
+	rootNode *parser.GroupStatementNode,
+	position lexer.Position,
+) []lexer.Range {
+	// Find the GroupStatementNode whose KeywordRange contains the position
+	var foundNode *parser.GroupStatementNode
+	queue := make([]*parser.GroupStatementNode, 0, 10)
+	queue = append(queue, rootNode)
+	counter := 0
+
+	for len(queue) > 0 {
+		if counter++; counter > 10_000 {
+			panic("infinite loop while computing 'DocumentHighlight()'")
+		}
+
+		node := queue[0]
+		queue = queue[1:]
+
+		// Check if position is within this node's keyword range
+		if !node.KeywordRange.IsEmpty() && node.KeywordRange.Contains(position) {
+			foundNode = node
+			break
+		}
+
+		// Add children to queue
+		for _, statement := range node.Statements {
+			if groupNode, ok := statement.(*parser.GroupStatementNode); ok {
+				queue = append(queue, groupNode)
+			}
+		}
+	}
+
+	if foundNode == nil {
+		return nil
+	}
+
+	// Collect all keyword ranges by walking the NextLinkedSibling circular list
+	ranges := make([]lexer.Range, 0, 4)
+	startNode := foundNode
+	current := foundNode
+
+	for {
+		if !current.KeywordRange.IsEmpty() {
+			ranges = append(ranges, current.KeywordRange)
+		}
+
+		current = current.NextLinkedSibling
+		if current == nil || current == startNode {
+			break
+		}
+
+		if len(ranges) > 100 {
+			panic("too many linked siblings while computing 'DocumentHighlight()'")
+		}
+	}
+
+	return ranges
+}
+
 // HasFileExtension reports whether fileName's extension is found within extensions.
 func HasFileExtension(fileName string, extensions []string) bool {
 	for _, ext := range extensions {

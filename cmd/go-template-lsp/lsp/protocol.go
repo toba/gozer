@@ -30,6 +30,7 @@ const (
 	MethodHover              = "textDocument/hover"
 	MethodDefinition         = "textDocument/definition"
 	MethodFoldingRange       = "textDocument/foldingRange"
+	MethodDocumentHighlight  = "textDocument/documentHighlight"
 	MethodPublishDiagnostics = "textDocument/publishDiagnostics"
 )
 

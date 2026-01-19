@@ -87,10 +87,11 @@ type InitializeParams struct {
 
 // ServerCapabilities describes the capabilities this server supports.
 type ServerCapabilities struct {
-	TextDocumentSync     int  `json:"textDocumentSync"`
-	HoverProvider        bool `json:"hoverProvider"`
-	DefinitionProvider   bool `json:"definitionProvider"`
-	FoldingRangeProvider bool `json:"foldingRangeProvider"`
+	TextDocumentSync          int  `json:"textDocumentSync"`
+	HoverProvider             bool `json:"hoverProvider"`
+	DefinitionProvider        bool `json:"definitionProvider"`
+	FoldingRangeProvider      bool `json:"foldingRangeProvider"`
+	DocumentHighlightProvider bool `json:"documentHighlightProvider"`
 }
 
 // InitializeResult is the response to the initialize request.
@@ -217,10 +218,11 @@ func ProcessInitializeRequest(
 		Id:      req.Id,
 		Result: InitializeResult{
 			Capabilities: ServerCapabilities{
-				TextDocumentSync:     TextDocumentSyncFull,
-				HoverProvider:        true,
-				DefinitionProvider:   true,
-				FoldingRangeProvider: true,
+				TextDocumentSync:          TextDocumentSyncFull,
+				HoverProvider:             true,
+				DefinitionProvider:        true,
+				FoldingRangeProvider:      true,
+				DocumentHighlightProvider: true,
 			},
 		},
 	}
@@ -677,6 +679,112 @@ func ProcessFoldingRangeRequest(
 	responseData, err := json.Marshal(res)
 	if err != nil {
 		slog.Warn("Error marshalling folding range response: " + err.Error())
+		return nil, fileName
+	}
+
+	return responseData, fileName
+}
+
+// DocumentHighlightKind represents the kind of document highlight.
+type DocumentHighlightKind int
+
+const (
+	// DocumentHighlightText is a textual highlight (default).
+	DocumentHighlightText DocumentHighlightKind = 1
+	// DocumentHighlightRead is a read-access highlight.
+	DocumentHighlightRead DocumentHighlightKind = 2
+	// DocumentHighlightWrite is a write-access highlight.
+	DocumentHighlightWrite DocumentHighlightKind = 3
+)
+
+// DocumentHighlightParams holds parameters for textDocument/documentHighlight.
+type DocumentHighlightParams struct {
+	TextDocument TextDocumentIdentifier `json:"textDocument"`
+	Position     Position               `json:"position"`
+}
+
+// DocumentHighlightResult represents a document highlight.
+type DocumentHighlightResult struct {
+	Range Range                 `json:"range"`
+	Kind  DocumentHighlightKind `json:"kind"`
+}
+
+// ProcessDocumentHighlightRequest handles textDocument/documentHighlight.
+func ProcessDocumentHighlightRequest(
+	data []byte,
+	parsedFiles map[string]*parser.GroupStatementNode,
+	textFromClient map[string][]byte,
+	muTextFromClient *sync.Mutex,
+) (response []byte, fileName string) {
+	req := RequestMessage[DocumentHighlightParams]{}
+
+	err := json.Unmarshal(data, &req)
+	if err != nil {
+		slog.Warn("Error unmarshalling document highlight request: " + err.Error())
+		return nil, ""
+	}
+
+	var rootNode *parser.GroupStatementNode
+	fileUri := req.Params.TextDocument.Uri
+
+	muTextFromClient.Lock()
+	fileContent := textFromClient[fileUri]
+
+	if fileContent != nil {
+		rootNode, _ = tmpl.ParseSingleFile(fileContent)
+	}
+
+	if rootNode == nil {
+		rootNode = parsedFiles[fileUri]
+	}
+
+	muTextFromClient.Unlock()
+
+	defer func() {
+		if r := recover(); r != nil {
+			msg := r.(string)
+			slog.Error(msg,
+				slog.Group("details",
+					slog.String("file_uri", fileUri),
+					slog.String("file_content", string(fileContent)),
+				),
+			)
+			panic(msg)
+		}
+	}()
+
+	var res ResponseMessage[[]DocumentHighlightResult]
+	res.Id = req.Id
+	res.JsonRpc = req.JsonRpc
+
+	if rootNode == nil {
+		// Return empty result if file not found
+		responseData, err := json.Marshal(res)
+		if err != nil {
+			slog.Warn("Error marshalling document highlight response: " + err.Error())
+			return nil, fileName
+		}
+		return responseData, fileName
+	}
+
+	position := lexer.Position{
+		Line:      uintToInt(req.Params.Position.Line),
+		Character: uintToInt(req.Params.Position.Character),
+	}
+
+	ranges := tmpl.DocumentHighlight(rootNode, position)
+
+	for _, rng := range ranges {
+		highlight := DocumentHighlightResult{
+			Range: ConvertParserRangeToLspRange(rng),
+			Kind:  DocumentHighlightText,
+		}
+		res.Result = append(res.Result, highlight)
+	}
+
+	responseData, err := json.Marshal(res)
+	if err != nil {
+		slog.Warn("Error marshalling document highlight response: " + err.Error())
 		return nil, fileName
 	}
 

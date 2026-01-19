@@ -46,10 +46,11 @@ type requestCounter struct {
 		DidOpen   int
 		DidChange int
 	}
-	FoldingRange int
-	Definition   int
-	Hover        int
-	Other        int
+	FoldingRange      int
+	DocumentHighlight int
+	Definition        int
+	Hover             int
+	Other             int
 }
 
 // TargetFileExtensions lists the file extensions this LSP supports.
@@ -195,6 +196,16 @@ func main() {
 			serverCounter.FoldingRange++
 			isRequestResponse = true
 			response, _ = lsp.ProcessFoldingRangeRequest(
+				data,
+				storage.ParsedFiles,
+				textFromClient,
+				muTextFromClient,
+			)
+
+		case lsp.MethodDocumentHighlight:
+			serverCounter.DocumentHighlight++
+			isRequestResponse = true
+			response, _ = lsp.ProcessDocumentHighlightRequest(
 				data,
 				storage.ParsedFiles,
 				textFromClient,
