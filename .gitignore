@@ -1,18 +1,6 @@
-# Binaries
-/go-html-validate
-*.exe
-*.exe~
-*.dll
-*.so
-*.dylib
-
-# Test binary
-*.test
+# Build artifacts
+/target/
 *.wasm
-/zed-ext/target
-
-# Output
-*.out
 
 # IDE
 .idea/
@@ -25,12 +13,8 @@
 .DS_Store
 Thumbs.db
 
-# Coverage
-coverage.txt
-coverage.html
-
+# Claude Code
 /.claude/settings.local.json
-.beans.clickup.yml
 
-/go-template-lsp
-go.mod.tmp
+# Beans sync
+.beans.clickup.yml
