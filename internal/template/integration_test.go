@@ -621,3 +621,102 @@ func TestDollarVariableInRangeBlock(t *testing.T) {
 		})
 	}
 }
+
+// TestDefineWithOnlyHTML tests that define blocks containing only HTML
+// (no template expressions) don't produce false "variable is never used" errors.
+// This reproduces the exact file from web/portfolio/portfolio-dialogs.html
+func TestDefineWithOnlyHTML(t *testing.T) {
+	source := `{{define "portfolio-dialogs" -}}
+<dialog id="sync-units-dialog" class="modal modal-sm">
+    <header aria-label="Sync units dialog header">
+        <h2>Sync Units</h2>
+        <button type="button" class="modal-close">&times;</button>
+    </header>
+    <div class="modal-body">
+        <p id="sync-units-description">Sync units for this portfolio.</p>
+        <label class="checkbox-label">
+            <input type="checkbox" id="sync-make-managed">
+            Make all new, active units "managed"
+        </label>
+        <label class="checkbox-label hidden" id="sync-import-reservations-label">
+            <input type="checkbox" id="sync-import-reservations" disabled>
+            Immediately import reservations
+        </label>
+    </div>
+    <footer>
+        <button type="button" class="btn-secondary modal-close">Cancel</button>
+        <button type="button" class="btn-primary" id="sync-units-confirm-btn" onclick="handleSyncUnitsConfirm()">Sync Units</button>
+    </footer>
+</dialog>
+
+<dialog id="sync-progress-dialog" class="modal modal-sm">
+    <header aria-label="Sync progress dialog header">
+        <h2>Syncing...</h2>
+    </header>
+    <div class="modal-body">
+        <div class="loading-spinner"></div>
+        <p>Please wait...</p>
+    </div>
+</dialog>
+{{- end -}}`
+
+	root, parseErrs := template.ParseSingleFile([]byte(source))
+	for _, err := range parseErrs {
+		t.Logf("Parse error: %s", err.GetError())
+	}
+
+	workspace := map[string]*parser.GroupStatementNode{
+		"test.html": root,
+	}
+
+	results := template.DefinitionAnalysisWithinWorkspace(workspace)
+
+	for _, result := range results {
+		for _, err := range result.Errs {
+			errMsg := err.GetError()
+			if testutil.ContainsSubstring(errMsg, "variable is never used") {
+				t.Errorf("False positive 'variable is never used': %s", errMsg)
+			}
+		}
+	}
+}
+
+// TestWorkspaceWithMultipleDefines tests workspace analysis doesn't produce
+// false "variable is never used" errors across multiple template files.
+func TestWorkspaceWithMultipleDefines(t *testing.T) {
+	// File 1: define with only HTML
+	file1 := `{{define "dialogs" -}}
+<dialog id="test-dialog" class="modal">
+    <h2>Test</h2>
+</dialog>
+{{- end -}}`
+
+	// File 2: define that uses template expressions
+	file2 := `{{define "content" -}}
+<div>{{.Title}}</div>
+{{- end -}}`
+
+	// File 3: root template (no define wrapper)
+	file3 := `<section>{{.Content}}</section>`
+
+	root1, _ := template.ParseSingleFile([]byte(file1))
+	root2, _ := template.ParseSingleFile([]byte(file2))
+	root3, _ := template.ParseSingleFile([]byte(file3))
+
+	workspace := map[string]*parser.GroupStatementNode{
+		"dialogs.html": root1,
+		"content.html": root2,
+		"page.html":    root3,
+	}
+
+	results := template.DefinitionAnalysisWithinWorkspace(workspace)
+
+	for _, result := range results {
+		for _, err := range result.Errs {
+			errMsg := err.GetError()
+			if testutil.ContainsSubstring(errMsg, "variable is never used") {
+				t.Errorf("False positive 'variable is never used': %s", errMsg)
+			}
+		}
+	}
+}
