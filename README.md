@@ -40,10 +40,12 @@ To enable HTMX support, either:
 ```json
 {
   "file_types": {
-    "Go HTML Template (HTMX 2)": ["gohtml"]
+    "Go HTMX 2": ["gohtml"]
   }
 }
 ```
+
+The Zed language IDs for HTMX variants are `Go HTMX 2` and `Go HTMX 4`.
 
 ## Installation
 

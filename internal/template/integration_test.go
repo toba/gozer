@@ -524,3 +524,82 @@ func TestUndefinedTemplateCall(t *testing.T) {
 		t.Error("Expected error for undefined template 'nonexistent'")
 	}
 }
+
+// TestDollarVariableInRangeBlock tests that accessing root context via $ inside
+// range blocks doesn't produce false positive "invalid type" or "field or method
+// not found" errors.
+func TestDollarVariableInRangeBlock(t *testing.T) {
+	tests := []struct {
+		name   string
+		source string
+	}{
+		{
+			name:   "dollar field in range",
+			source: `{{range .Runs}}{{$.Location}}{{end}}`,
+		},
+		{
+			name:   "dollar field in range inside define",
+			source: `{{define "test"}}{{range .Runs}}{{$.Location}}{{end}}{{end}}`,
+		},
+		{
+			name:   "dollar field with dot field in range",
+			source: `{{range .Runs}}{{.StartedAt}} {{$.Location}}{{end}}`,
+		},
+		{
+			name:   "nested dollar access in range",
+			source: `{{range .Items}}<a href="/portfolio/{{$.PortfolioID}}">{{.Name}}</a>{{end}}`,
+		},
+		{
+			name:   "dollar as method arg in range",
+			source: `{{range .LogEntries}}<a href="{{.CloudLoggingURL $.ProjectID}}">{{end}}`,
+		},
+		{
+			name:   "dollar in nested range",
+			source: `{{range .Outer}}{{range .Inner}}{{$.RootField}}{{end}}{{end}}`,
+		},
+		{
+			name:   "dollar in with block",
+			source: `{{with .Section}}{{$.GlobalSetting}}{{end}}`,
+		},
+		{
+			name:   "dollar in define without range",
+			source: `{{define "test"}}{{.Job.Schedule}} {{$.Location}}{{end}}`,
+		},
+		{
+			name:   "dollar as function arg in define",
+			source: `{{define "test"}}{{localcron .Job.Schedule .Job.TimeZone $.Location}}{{end}}`,
+		},
+	}
+
+	forbiddenErrors := []string{
+		"invalid type",
+		"field or method not found",
+		"variable undefined",
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			root, parseErrs := template.ParseSingleFile([]byte(tt.source))
+			for _, err := range parseErrs {
+				t.Logf("Parse error: %s", err.GetError())
+			}
+
+			workspace := map[string]*parser.GroupStatementNode{
+				"test.html": root,
+			}
+
+			results := template.DefinitionAnalysisWithinWorkspace(workspace)
+
+			for _, result := range results {
+				for _, err := range result.Errs {
+					errMsg := err.GetError()
+					for _, forbidden := range forbiddenErrors {
+						if testutil.ContainsSubstring(errMsg, forbidden) {
+							t.Errorf("False positive error for $. access: %s", errMsg)
+						}
+					}
+				}
+			}
+		})
+	}
+}

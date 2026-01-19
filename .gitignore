@@ -32,5 +32,5 @@ coverage.html
 /.claude/settings.local.json
 .beans.clickup.yml
 
-#/go-template-lsp
-#go.mod.tmp
+/go-template-lsp
+go.mod.tmp

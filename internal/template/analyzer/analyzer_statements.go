@@ -159,6 +159,12 @@ func definitionAnalysisGroupStatement(
 		localVariables["."] = primaryVariable
 		markVariableAsUsed(localVariables["."])
 
+		// Preserve $ from parent scope so it can be accessed inside range blocks.
+		// In Go templates, $ always refers to the root data passed to Execute().
+		if dollarDef := scopedGlobalVariables["$"]; dollarDef != nil {
+			localVariables["$"] = dollarDef
+		}
+
 		// if 'key' exists for the current loop, enable type inference for it
 		// (this is an exceptional case only found in 'range' loop, since everywhere else '$' var dont have type inference capability)
 		if file.secondaryVariable != nil {
@@ -271,12 +277,21 @@ func definitionAnalysisGroupStatement(
 
 		markVariableAsUsed(localVariables["."])
 
+		// Preserve $ from parent scope so it can be accessed inside with blocks.
+		// In Go templates, $ always refers to the root data passed to Execute().
+		if dollarDef := scopedGlobalVariables["$"]; dollarDef != nil {
+			localVariables["$"] = dollarDef
+		}
+
 	case node.IsGroupWithDollarAndDotVariableReset():
 		scopedGlobalVariables = make(map[string]*VariableDefinition)
 		localVariables = make(map[string]*VariableDefinition)
 
 		localVariables["."] = NewVariableDefinition(".", node, node.Parent(), file.name)
-		localVariables["$"] = localVariables["."]
+		// Create a separate $ definition so type inference on . doesn't affect $.
+		// In Go templates, $ refers to the root data and should maintain type=any
+		// so that $.Field accesses work without "field not found" errors.
+		localVariables["$"] = NewVariableDefinition("$", node, node.Parent(), file.name)
 
 		markVariableAsUsed(localVariables["."])
 
