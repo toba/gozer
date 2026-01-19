@@ -1,11 +1,6 @@
 #!/bin/bash
 set -e
 
-# Pre-commit checks
-echo "==> Running pre-commit checks..."
-golangci-lint run
-go test ./...
-
 # Stage and show changes
 echo "==> Staging changes..."
 git add -A
@@ -71,15 +66,15 @@ if [ "$PUSH" = "true" ]; then
             echo "==> Auto-bumping patch version: $CURRENT_TAG -> $NEW_VERSION"
         fi
 
-        # Update zed-ext version files with the new version
+        # Update version files with the new version
         EXT_VERSION="${NEW_VERSION#v}"
-        EXTENSION_TOML="zed-ext/extension.toml"
+        EXTENSION_TOML="extension.toml"
         if [ -f "$EXTENSION_TOML" ]; then
             echo "==> Updating $EXTENSION_TOML version to $EXT_VERSION..."
             sed -i '' "s/^version = \".*\"/version = \"$EXT_VERSION\"/" "$EXTENSION_TOML"
             git add "$EXTENSION_TOML"
         fi
-        CARGO_TOML="zed-ext/Cargo.toml"
+        CARGO_TOML="Cargo.toml"
         if [ -f "$CARGO_TOML" ]; then
             echo "==> Updating $CARGO_TOML version to $EXT_VERSION..."
             sed -i '' "s/^version = \".*\"/version = \"$EXT_VERSION\"/" "$CARGO_TOML"
@@ -95,9 +90,9 @@ if [ "$PUSH" = "true" ]; then
         echo "==> Creating tag $NEW_VERSION..."
         git tag -a "$NEW_VERSION" -m "Release $NEW_VERSION"
 
-        echo "==> Pushing tag (GoReleaser will create release)..."
+        echo "==> Pushing tag..."
         git push origin "$NEW_VERSION"
-        echo "==> Tag $NEW_VERSION pushed, GoReleaser workflow will create release"
+        echo "==> Tag $NEW_VERSION pushed"
     else
         echo "==> No existing tags, skipping version bump"
     fi
