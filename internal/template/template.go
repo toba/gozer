@@ -8,7 +8,9 @@ import (
 	"maps"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
+	"sync"
 
 	checker "github.com/pacer/gozer/internal/template/analyzer"
 	"github.com/pacer/gozer/internal/template/lexer"
@@ -120,30 +122,73 @@ func ParseSingleFile(source []byte) (*parser.GroupStatementNode, []Error) {
 	return parseTree, parseErrs
 }
 
-// ParseFilesInWorkspace parses all files within a workspace.
+// parseResult holds the result of parsing a single file.
+type parseResult struct {
+	fileName  string
+	parseTree *parser.GroupStatementNode
+	errs      []Error
+}
+
+// ParseFilesInWorkspace parses all files within a workspace using parallel goroutines.
 // Returns AST nodes and error list. Never returns nil, always an empty 'map' if nothing found.
+// Files are parsed concurrently for improved performance on multi-core systems.
 func ParseFilesInWorkspace(
 	workspaceFiles map[string][]byte,
 ) (map[string]*parser.GroupStatementNode, []Error) {
-	parsedFilesInWorkspace := make(map[string]*parser.GroupStatementNode)
+	if len(workspaceFiles) == 0 {
+		return make(map[string]*parser.GroupStatementNode), nil
+	}
 
-	errs := make([]Error, 0, len(workspaceFiles)*2)
+	numWorkers := min(runtime.GOMAXPROCS(0), len(workspaceFiles))
 
-	for longFileName, content := range workspaceFiles {
-		streamsOfToken, tokenErrs := lexer.Tokenize(content)
-		parseTree, parseError := parser.Parse(streamsOfToken)
+	results := make(chan parseResult, len(workspaceFiles))
 
-		parsedFilesInWorkspace[longFileName] = parseTree
+	// Use a semaphore to limit concurrency
+	sem := make(chan struct{}, numWorkers)
 
-		errs = append(errs, tokenErrs...)
-		errs = append(errs, parseError...)
+	var wg sync.WaitGroup
+	for fileName, content := range workspaceFiles {
+		wg.Add(1)
+		go func(fileName string, content []byte) {
+			defer wg.Done()
+
+			// Acquire semaphore
+			sem <- struct{}{}
+			defer func() { <-sem }()
+
+			streamsOfToken, tokenErrs := lexer.Tokenize(content)
+			parseTree, parseErrs := parser.Parse(streamsOfToken)
+
+			errs := make([]Error, 0, len(tokenErrs)+len(parseErrs))
+			errs = append(errs, tokenErrs...)
+			errs = append(errs, parseErrs...)
+
+			results <- parseResult{fileName, parseTree, errs}
+		}(fileName, content)
+	}
+
+	// Close results channel when all goroutines complete
+	go func() {
+		wg.Wait()
+		close(results)
+	}()
+
+	parsedFilesInWorkspace := make(
+		map[string]*parser.GroupStatementNode,
+		len(workspaceFiles),
+	)
+	allErrs := make([]Error, 0, len(workspaceFiles)*2)
+
+	for result := range results {
+		parsedFilesInWorkspace[result.fileName] = result.parseTree
+		allErrs = append(allErrs, result.errs...)
 	}
 
 	if len(workspaceFiles) != len(parsedFilesInWorkspace) {
 		panic("number of parsed files do not match the amount present in the workspace")
 	}
 
-	return parsedFilesInWorkspace, errs
+	return parsedFilesInWorkspace, allErrs
 }
 
 // analyzeAffectedFiles performs definition analysis on a set of affected files.

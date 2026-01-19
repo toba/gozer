@@ -3,16 +3,17 @@ package parser
 import (
 	"errors"
 	"log"
+	"sync/atomic"
 
 	"github.com/pacer/gozer/internal/template/lexer"
 )
 
-var uniqueUniversalCounter int = 0
+var uniqueUniversalCounter atomic.Int64
 
 // GetUniqueNumber returns a unique integer at each call.
+// This function is safe for concurrent use.
 func GetUniqueNumber() int {
-	uniqueUniversalCounter++
-	return uniqueUniversalCounter
+	return int(uniqueUniversalCounter.Add(1))
 }
 
 // ParseError represents a syntax error encountered during parsing.

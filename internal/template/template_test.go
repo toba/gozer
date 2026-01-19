@@ -514,3 +514,114 @@ func TestSetWorkspaceCustomFunctions(t *testing.T) {
 		t.Error("Expected non-nil custom functions after setting empty map")
 	}
 }
+
+// TestParseFilesInWorkspace_Concurrent verifies that parallel parsing
+// produces deterministic results and collects all errors properly.
+func TestParseFilesInWorkspace_Concurrent(t *testing.T) {
+	// Create a larger workspace to exercise parallelism
+	workspace := make(map[string][]byte)
+	for i := range 50 {
+		fileName := filepath.Join("dir", "file"+string(rune('A'+i%26))+".html")
+		workspace[fileName] = []byte("{{ .Field" + string(rune('A'+i%26)) + " }}")
+	}
+
+	// Run multiple times to check for race conditions and determinism
+	for range 5 {
+		parsed, errs := template.ParseFilesInWorkspace(workspace)
+
+		if len(parsed) != len(workspace) {
+			t.Fatalf("Expected %d parsed files, got %d", len(workspace), len(parsed))
+		}
+
+		if len(errs) != 0 {
+			t.Errorf("Expected no errors, got %d", len(errs))
+		}
+
+		// Verify all files are present
+		for fileName := range workspace {
+			if parsed[fileName] == nil {
+				t.Errorf("Missing parsed result for %s", fileName)
+			}
+		}
+	}
+}
+
+// TestParseFilesInWorkspace_ConcurrentWithErrors verifies that errors
+// from parallel parsing are all collected properly.
+func TestParseFilesInWorkspace_ConcurrentWithErrors(t *testing.T) {
+	workspace := map[string][]byte{
+		"valid1.html":   []byte("{{ .Field1 }}"),
+		"invalid1.html": []byte("{{ if }}{{ end }}"), // missing condition
+		"valid2.html":   []byte("{{ .Field2 }}"),
+		"invalid2.html": []byte("{{ if .Cond }}content"), // unclosed if
+		"valid3.html":   []byte("{{ .Field3 }}"),
+		"invalid3.html": []byte("{{ }}"), // empty expression
+	}
+
+	parsed, errs := template.ParseFilesInWorkspace(workspace)
+
+	// All files should be parsed (even those with errors)
+	if len(parsed) != 6 {
+		t.Fatalf("Expected 6 parsed files, got %d", len(parsed))
+	}
+
+	// Should have collected errors from the invalid files
+	if len(errs) == 0 {
+		t.Error("Expected errors from invalid files")
+	}
+
+	// Each parsed result should be non-nil (parser returns partial AST on error)
+	for fileName, result := range parsed {
+		if result == nil {
+			t.Errorf("Expected non-nil parse result for %s", fileName)
+		}
+	}
+}
+
+// TestParseFilesInWorkspace_LargeWorkspace tests performance with many files.
+func TestParseFilesInWorkspace_LargeWorkspace(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping large workspace test in short mode")
+	}
+
+	// Create a workspace with 200 files
+	workspace := make(map[string][]byte)
+	for i := range 200 {
+		fileName := filepath.Join(
+			"templates",
+			"component"+string(
+				rune('0'+i/100),
+			)+string(
+				rune('0'+(i/10)%10),
+			)+string(
+				rune('0'+i%10),
+			)+".html",
+		)
+		content := []byte(
+			`{{ define "template` + string(
+				rune('0'+i/100),
+			) + string(
+				rune('0'+(i/10)%10),
+			) + string(
+				rune('0'+i%10),
+			) + `" }}
+{{ if .Condition }}
+  {{ range .Items }}
+    {{ .Name }}: {{ .Value }}
+  {{ end }}
+{{ end }}
+{{ end }}`,
+		)
+		workspace[fileName] = content
+	}
+
+	parsed, errs := template.ParseFilesInWorkspace(workspace)
+
+	if len(parsed) != 200 {
+		t.Fatalf("Expected 200 parsed files, got %d", len(parsed))
+	}
+
+	if len(errs) != 0 {
+		t.Errorf("Expected no errors, got %d: %v", len(errs), errs)
+	}
+}
