@@ -245,6 +245,12 @@ func makeFunctionTypeCheck(
 		}
 	}
 
+	// Special handling for comparison functions: propagate types from literals to variables
+	if isComparisonFunction(string(funcSymbol.Value)) && len(argSymbols) >= 2 {
+		rechecks := inferTypesFromComparison(argSymbols, argTypes, makeTypeInference)
+		variablesToRecheck = append(variablesToRecheck, rechecks...)
+	}
+
 	// 2. Check Validity for Return Type
 	returnSize := funcType.Results().Len()
 	if returnSize > 2 {
@@ -294,4 +300,55 @@ func getVariableDefinitionForRootField(
 	}
 
 	return varDef, nil
+}
+
+// isComparisonFunction returns true if the function name is a comparison function.
+func isComparisonFunction(name string) bool {
+	switch name {
+	case "eq", "ne", "lt", "le", "gt", "ge":
+		return true
+	}
+	return false
+}
+
+// inferTypesFromComparison propagates types from literals to any-typed variables
+// in comparison function calls. For example, in `eq .Status "active"`, if .Status
+// is type `any`, it will infer that .Status is type `string` from the literal.
+func inferTypesFromComparison(
+	argSymbols []*lexer.Token,
+	argTypes []types.Type,
+	makeTypeInference InferenceFunc,
+) []*collectionPostCheckImplicitTypeNode {
+	var rechecks []*collectionPostCheckImplicitTypeNode
+
+	// Find pairs where one is any-typed and another is a concrete type
+	for i := range argSymbols {
+		if !types.Identical(argTypes[i], typeAny.Type()) {
+			continue // Skip if not any-typed
+		}
+
+		// This argument is any-typed; look for a concrete type in other args
+		for j := range argSymbols {
+			if i == j {
+				continue
+			}
+
+			// Check if argTypes[j] is a concrete type (not any, not invalid)
+			if argTypes[j] == nil || types.Identical(argTypes[j], typeAny.Type()) {
+				continue
+			}
+			if types.Identical(argTypes[j], types.Typ[types.Invalid]) {
+				continue
+			}
+
+			// Found a concrete type - propagate it to the any-typed argument
+			recheck, _ := makeTypeInference(argSymbols[i], argTypes[i], argTypes[j])
+			if recheck != nil {
+				rechecks = append(rechecks, recheck)
+			}
+			break // Only need to infer once per any-typed argument
+		}
+	}
+
+	return rechecks
 }

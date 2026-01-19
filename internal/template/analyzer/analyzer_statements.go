@@ -776,6 +776,9 @@ func definitionAnalysisTemplatateStatement(
 
 		candidateType := expressionType[0]
 
+		// Record the call-site type for type inference into the template body
+		templateDef.AddCallSiteType(candidateType)
+
 		rhs := inferences.uniqueVariableInExpression
 		if types.Identical(candidateType, typeAny.Type()) && rhs != nil {
 			templateTree := newNodeImplicitType(

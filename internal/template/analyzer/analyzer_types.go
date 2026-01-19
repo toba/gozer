@@ -261,11 +261,12 @@ func (v *VariableDefinition) TypeString() string {
 
 // TemplateDefinition represents a defined template ({{define "name"}} or {{block "name"}}).
 type TemplateDefinition struct {
-	node      parser.AstNode
-	rng       lexer.Range
-	fileName  string
-	name      string
-	inputType types.Type
+	node          parser.AstNode
+	rng           lexer.Range
+	fileName      string
+	name          string
+	inputType     types.Type
+	callSiteTypes []types.Type // types passed at call sites for type inference
 }
 
 func (t *TemplateDefinition) Name() string {
@@ -277,7 +278,9 @@ func (t *TemplateDefinition) FileName() string {
 }
 
 func (t *TemplateDefinition) Type() types.Type {
-	return t.inputType
+	// Return the inferred type from call sites if available,
+	// otherwise return the declared input type.
+	return t.InferredInputType()
 }
 
 func (t *TemplateDefinition) Node() parser.AstNode {
@@ -293,6 +296,48 @@ func (t *TemplateDefinition) TypeString() string {
 	str := "var _ " + t.inputType.Underlying().String()
 
 	return str
+}
+
+// AddCallSiteType records a type passed at a call site for this template.
+// This enables type inference when the template's input type is `any`.
+func (t *TemplateDefinition) AddCallSiteType(typ types.Type) {
+	if typ == nil || types.Identical(typ, typeAny.Type()) {
+		return
+	}
+	t.callSiteTypes = append(t.callSiteTypes, typ)
+}
+
+// InferredInputType returns the inferred input type based on call sites.
+// Call-site types take precedence over body-inferred types (partial structs with any fields).
+// If there are call-site types, compute the unified type from them.
+// Otherwise, fall back to the body-inferred inputType.
+func (t *TemplateDefinition) InferredInputType() types.Type {
+	if len(t.callSiteTypes) == 0 {
+		return t.inputType // no call sites, use body-inferred type
+	}
+	if len(t.callSiteTypes) == 1 {
+		return t.callSiteTypes[0] // single call site, use its type
+	}
+	// Multiple call sites: compute common structural type
+	return computeCommonType(t.callSiteTypes)
+}
+
+// computeCommonType finds the common structural type among multiple types.
+// For now, if all types are structurally identical, return that type.
+// Otherwise, return any.
+func computeCommonType(typs []types.Type) types.Type {
+	if len(typs) == 0 {
+		return typeAny.Type()
+	}
+	first := typs[0]
+	for i := 1; i < len(typs); i++ {
+		if !types.Identical(first, typs[i]) {
+			// Types differ - for now, fall back to any
+			// Future enhancement: compute intersection of struct fields
+			return typeAny.Type()
+		}
+	}
+	return first
 }
 
 // NewTemplateDefinition creates a new TemplateDefinition with the given parameters.
@@ -353,6 +398,11 @@ func (f *FileDefinition) TypeString() string {
 
 func (f *FileDefinition) Root() *parser.GroupStatementNode {
 	return f.root
+}
+
+// GetTemplate returns the TemplateDefinition for the given template name, or nil if not found.
+func (f *FileDefinition) GetTemplate(name string) *TemplateDefinition {
+	return f.templates[name]
 }
 
 // GetScopedVariables returns variables declared directly in the given scope.
