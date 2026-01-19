@@ -195,28 +195,47 @@ func getKeyAndValueTypeFromIterableType(
 	case *types.Chan:
 		return types.Typ[types.Int], typ.Elem(), nil
 
-	// case *types.Named:
-	//
-	// look for iter.seq & iter.seq2 method
-	case *types.Signature: // handle iter.seq & iter.seq2 here
-		// 1. verify that return type match iter.seq definition
-		if typ.Results().Len() != 1 {
-			break // will return an error
+	// Handle iter.Seq[V] and iter.Seq2[K,V] iterator types
+	// iter.Seq[V] = func(yield func(V) bool)
+	// iter.Seq2[K,V] = func(yield func(K, V) bool)
+	case *types.Signature:
+		// 1. Verify outer function has no return value (iter.Seq returns nothing)
+		if typ.Results().Len() != 0 {
+			break // not an iterator
 		}
 
-		returnType := typ.Results().At(0).Type().Underlying()
-		if !types.Identical(returnType, types.Typ[types.Bool]) {
-			break // will return an error
+		// 2. Verify outer function has exactly 1 parameter (the yield func)
+		if typ.Params().Len() != 1 {
+			break // not an iterator
 		}
 
-		// 2. verify that parameter size match iter.seq definition
-		// TODO: continue handling iterator
-		// however, I should fetch the definition of the iterator within the std
-		// then compare the std version against the user version to see if there is match
-		// eg. types.Identical(stdIteratorSignature, typ)
-		// For now return any_type
+		// 3. Get the yield function signature
+		yieldParam := typ.Params().At(0).Type()
+		yieldSig, ok := yieldParam.Underlying().(*types.Signature)
+		if !ok {
+			break // param is not a function
+		}
 
-		return typeAny.Type(), typeAny.Type(), nil
+		// 4. Verify yield function returns bool
+		if yieldSig.Results().Len() != 1 {
+			break // yield must return exactly one value
+		}
+		if !types.Identical(yieldSig.Results().At(0).Type(), types.Typ[types.Bool]) {
+			break // yield must return bool
+		}
+
+		// 5. Extract types from yield parameters
+		yieldParams := yieldSig.Params()
+		switch yieldParams.Len() {
+		case 1:
+			// iter.Seq[V]: yield(V) - return (any, V)
+			// Key type is irrelevant for single-value iterators
+			return typeAny.Type(), yieldParams.At(0).Type(), nil
+		case 2:
+			// iter.Seq2[K,V]: yield(K, V) - return (K, V)
+			return yieldParams.At(0).Type(), yieldParams.At(1).Type(), nil
+		}
+		// Yield with 0 or 3+ params is not a valid iterator
 
 	default:
 		break // will return an error

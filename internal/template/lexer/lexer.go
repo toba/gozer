@@ -5,15 +5,13 @@ import (
 	"log"
 )
 
-// ----------------------
-// Lexer Types definition
-// ----------------------
-
+// Position represents a location in source code (line and character offset, both 0-indexed).
 type Position struct {
 	Line      int
 	Character int
 }
 
+// Range represents a span in source code from Start to End (inclusive).
 type Range struct {
 	Start Position
 	End   Position
@@ -83,6 +81,7 @@ func (r Range) Shrink(startChars, endChars int) Range {
 //go:generate stringer -type=Kind
 type Kind int
 
+// StreamToken holds all tokens from a single {{...}} block, plus any lexer errors.
 type StreamToken struct {
 	Tokens                  []Token
 	Err                     *LexerError
@@ -129,6 +128,7 @@ func (s StreamToken) String() string {
 	return str[1:]
 }
 
+// Token represents a single lexical element (keyword, variable, operator, etc.).
 type Token struct {
 	ID    Kind
 	Range Range
@@ -170,6 +170,7 @@ func NewStreamToken(tokens []Token, err *LexerError, reach Range, loc int) *Stre
 	return stream
 }
 
+// LexerError records a tokenization error with its location and associated token.
 type LexerError struct {
 	Err   error
 	Range Range
@@ -184,17 +185,15 @@ func (l LexerError) GetRange() Range {
 	return l.Range
 }
 
+// Error is implemented by types that can report a lexer or parser error.
 type Error interface {
 	GetError() string
 	GetRange() Range
 	String() string
 }
 
-// Tokenize the source code provided by 'content'.
-// Each template pair delimitator ('{{' and '}}') represent an instruction of statement.
-// Each source code instruction is tokenized separately, and the output are tokens representing the instruction.
-// Every tokens representing an instruction always end by a 'EOL' tokens
-// To sum up, the lexer/tokenizer return an array of token stream representing all instruction inside a file
+// Tokenize breaks Go template source into token streams. Each {{...}} block is
+// tokenized separately and returned as a StreamToken (always ending with an Eol token).
 func Tokenize(content []byte) (file []*StreamToken, errs []Error) {
 	if len(content) == 0 {
 		return nil, nil

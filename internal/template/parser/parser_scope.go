@@ -7,9 +7,10 @@ import (
 	"github.com/pacer/gozer/internal/template/lexer"
 )
 
+// groupMerger builds the AST by tracking open scopes and linking control flow statements.
 type groupMerger struct {
-	openedNodeStack []*GroupStatementNode
-	topLinkedGroup  []*GroupStatementNode // list of group oponer only
+	openedNodeStack []*GroupStatementNode // stack of currently open scopes
+	topLinkedGroup  []*GroupStatementNode // tracks opener groups for linking with else/end
 }
 
 func newGroupMerger() *groupMerger {
@@ -34,7 +35,6 @@ func (p *groupMerger) safelyGroupStatement(node AstNode) *ParseError {
 		panic("cannot add <nil> AST to group")
 	}
 
-	// TODO: change var name to : "openedGroupNodeStack", "activeScopeNodes", "activeScopeStack", "openedScopeStack"
 	if len(p.openedNodeStack) == 0 {
 		panic(
 			"no initial scope available to hold the statements. There must always exist at least one 'scope/group' at any moment",

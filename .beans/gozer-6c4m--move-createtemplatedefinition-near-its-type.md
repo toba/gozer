@@ -1,11 +1,11 @@
 ---
 # gozer-6c4m
 title: Move CreateTemplateDefinition near its type
-status: todo
+status: completed
 type: task
 priority: low
 created_at: 2026-01-18T22:43:34Z
-updated_at: 2026-01-18T22:43:34Z
+updated_at: 2026-01-19T00:30:46Z
 ---
 
 Code organization improvement in template_dependencies_analysis.go:587.

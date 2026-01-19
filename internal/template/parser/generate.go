@@ -18,13 +18,7 @@ import (
 )
 
 func main() {
-	// TODO: Change log output from 'Stdout' to 'file'
 	setupLogger()
-
-	// TODO: Make the tool works with proxy structure
-	// A proxy struct is a struct that contains all the property for which to produce
-	// the getter/setter, and which is embeded inside other struct for which the
-	// getter/setter method will be created on
 
 	fileName := "ast.go"
 	interfaceName := "AstNode"
@@ -101,8 +95,6 @@ func main() {
 	fmt.Println("// code completed")
 	fmt.Println(code)
 	fmt.Println()
-
-	//TODO: Save the newly obtained source code to file
 
 	return
 }

@@ -51,7 +51,7 @@ func (p *Parser) ParseStatement() (ast AstNode, er *ParseError) {
 			err := NewParseError(
 				p.peek(),
 				errors.New(
-					"syntax for comment didn't end properly. extraneous expression",
+					"syntax for comment didn't end properly; extraneous expression",
 				),
 			)
 			err.Range.End = p.lastToken.Range.End
@@ -59,7 +59,7 @@ func (p *Parser) ParseStatement() (ast AstNode, er *ParseError) {
 			return commentExpression, err
 		}
 
-		// Check that this comment contains go code to semantically analize
+		// Check that this comment contains go code to semantically analyze
 		lookForAndSetGoCodeInComment(commentExpression)
 
 		return commentExpression, nil

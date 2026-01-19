@@ -1,11 +1,11 @@
 ---
 # gozer-r2ui
 title: Variadic function type checking bugs
-status: todo
+status: completed
 type: bug
 priority: high
 created_at: 2026-01-18T22:43:33Z
-updated_at: 2026-01-18T22:43:33Z
+updated_at: 2026-01-19T00:21:03Z
 ---
 
 Two related bugs in the type checker (analyzer_test.go:561,582):
@@ -18,6 +18,6 @@ Current tests expect the wrong behavior (expect errors instead of success). The 
 - Allow calling variadic functions without providing any variadic arguments
 
 ## Checklist
-- [ ] Fix slice expansion to variadic parameter (`[]int` to `...int`)
-- [ ] Fix optional variadic argument handling
-- [ ] Update tests to expect correct behavior
+- [x] Fix slice expansion to variadic parameter (`[]int` to `...int`)
+- [x] Fix optional variadic argument handling
+- [x] Update tests to expect correct behavior

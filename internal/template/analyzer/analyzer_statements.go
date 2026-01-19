@@ -137,11 +137,11 @@ func definitionAnalysisGroupStatement(
 	)
 
 	// 3. Set Variables Scope
-	// TODO: Use the new 'node.IsGroupWithNoVariableReset()' and the like
-	switch node.Kind() {
-	case parser.KindIf, parser.KindElse, parser.KindElseIf, parser.KindEnd:
+	switch {
+	case node.IsGroupWithNoVariableReset():
+		// No variable reset needed for if/else/elseif/end
 
-	case parser.KindRangeLoop:
+	case node.Kind() == parser.KindRangeLoop:
 		var primaryVariable *VariableDefinition
 
 		if inferences.uniqueVariableInExpression == nil {
@@ -174,7 +174,7 @@ func definitionAnalysisGroupStatement(
 			file.extraVariableNameWithTypeInferenceBehavior[def.name] = def
 		}
 
-	case parser.KindWith, parser.KindElseWith:
+	case node.Kind() == parser.KindWith || node.Kind() == parser.KindElseWith:
 		localVariables["."] = NewVariableDefinition(
 			".",
 			node.ControlFlow,
@@ -271,7 +271,7 @@ func definitionAnalysisGroupStatement(
 
 		markVariableAsUsed(localVariables["."])
 
-	case parser.KindDefineTemplate, parser.KindBlockTemplate, parser.KindGroupStatement:
+	case node.IsGroupWithDollarAndDotVariableReset():
 		scopedGlobalVariables = make(map[string]*VariableDefinition)
 		localVariables = make(map[string]*VariableDefinition)
 
@@ -546,8 +546,7 @@ func definitionAnalysisGroupStatement(
 				)
 			}
 
-			// TODO: Not sure if this one is useful
-			// WIP
+			// Update shadow type for assignment nodes with any-typed constraints
 			if recheck.isAssignmentNode &&
 				types.Identical(constraintDef.typ, typeAny.Type()) {
 				varDef := constraintDef
@@ -801,9 +800,8 @@ func definitionAnalysisTemplatateStatement(
 	return expressionType, inferences, errs
 }
 
-// TODO: refactor this function, too many ugly code in here
-// Only one 'go:code' allowed by files, the other one will be reported as error and discarded in the subsequent computation
-// During this phase 'file' argument is modified (file.Functions)
+// definitionAnalysisComment parses go:code directives in comments to extract type hints
+// and custom function definitions. Only one go:code per file is allowed.
 //
 //nolint:unparam // InferenceFoundReturn result is reserved for future use
 func definitionAnalysisComment(

@@ -7,6 +7,8 @@ import (
 	"github.com/pacer/gozer/internal/template/lexer"
 )
 
+// lookForAndSetGoCodeInComment checks if a comment contains "go:code" directive
+// and extracts the Go code portion if found.
 func lookForAndSetGoCodeInComment(commentExpression *CommentNode) {
 	const SEP_COMMENT_GOCODE = "go:code"
 	comment := commentExpression.Value.Value
@@ -52,6 +54,7 @@ func lookForAndSetGoCodeInComment(commentExpression *CommentNode) {
 	}
 }
 
+// peek returns the current token without advancing.
 func (p Parser) peek() *lexer.Token {
 	index := p.indexCurrentToken
 
@@ -62,10 +65,12 @@ func (p Parser) peek() *lexer.Token {
 	return &p.stream.Tokens[index]
 }
 
+// nextToken advances to the next token.
 func (p *Parser) nextToken() {
 	p.indexCurrentToken++
 }
 
+// accept returns true if the current token matches the given kind.
 func (p Parser) accept(kind lexer.Kind) bool {
 	index := p.indexCurrentToken
 
@@ -76,6 +81,7 @@ func (p Parser) accept(kind lexer.Kind) bool {
 	return p.stream.Tokens[index].ID == kind
 }
 
+// expect returns true and advances if the current token matches the given kind.
 func (p *Parser) expect(kind lexer.Kind) bool {
 	if p.accept(kind) {
 		p.nextToken()
@@ -116,6 +122,7 @@ func (p Parser) isRecursionMaxDepth() bool {
 	return p.currentRecursionDepth >= p.maxRecursionDepth
 }
 
+// NewParseError creates a ParseError from a token and error.
 func NewParseError(token *lexer.Token, err error) *ParseError {
 	if token == nil {
 		panic("token cannot be nil while creating parse error")

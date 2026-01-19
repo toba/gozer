@@ -196,7 +196,7 @@ func NewDefinitionAnalyzer(
 func (a definitionAnalyzer) String() string {
 	str := fmt.Sprintf(
 		`{ "symbols": %s, "index": %d, "file": %v, "rangeExpression": %s }`,
-		lexer.PrettyFormater(a.symbols),
+		lexer.PrettyFormatter(a.symbols),
 		a.index,
 		a.file,
 		a.rangeExpression.String(),

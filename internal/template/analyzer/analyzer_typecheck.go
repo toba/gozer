@@ -147,7 +147,8 @@ func makeFunctionTypeCheck(
 		err := parser.NewParseError(funcSymbol, errFunctionParameterSizeMismatch)
 		errs = append(errs, err)
 		return invalidReturnType, nil, errs
-	} else if isVariadicFunction && argumentSize < paramSize {
+	} else if isVariadicFunction && argumentSize < paramSize-1 {
+		// For variadic functions, minimum args is paramSize-1 (variadic param is optional)
 		err := parser.NewParseError(funcSymbol, errFunctionNotEnoughArguments)
 		errs = append(errs, err)
 		return invalidReturnType, nil, errs
@@ -165,6 +166,15 @@ func makeFunctionTypeCheck(
 				)
 			}
 			paramType = sliceParam.Elem()
+
+			// Check if argument is a slice that can be expanded to variadic
+			// In Go templates, passing []T to ...T is valid (slice expansion)
+			if argSlice, ok := argTypes[i].(*types.Slice); ok {
+				if types.Identical(argSlice.Elem(), paramType) {
+					// Slice element type matches variadic element type - allow expansion
+					continue
+				}
+			}
 		} else {
 			paramType = funcType.Params().At(i).Type()
 		}

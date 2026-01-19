@@ -1,11 +1,11 @@
 ---
 # gozer-mnk7
 title: Redo comment token detection
-status: todo
+status: scrapped
 type: task
 priority: low
 created_at: 2026-01-18T22:43:34Z
-updated_at: 2026-01-18T22:43:34Z
+updated_at: 2026-01-19T00:34:10Z
 ---
 
 In lexer.go:589,609, comment parsing needs improvement.

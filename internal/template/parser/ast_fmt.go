@@ -27,7 +27,7 @@ func (v VariableDeclarationNode) String() string {
 	if v.Value != nil {
 		value = fmt.Sprint(v.Value)
 	}
-	str := lexer.PrettyFormater(v.VariableNames)
+	str := lexer.PrettyFormatter(v.VariableNames)
 
 	return fmt.Sprintf(
 		`{"Kind": %s, "Range": %s, "VariableNames": %s, "Value": %s}`,
@@ -39,7 +39,7 @@ func (v VariableDeclarationNode) String() string {
 }
 
 func (v VariableAssignationNode) String() string {
-	variableName := lexer.PrettyFormater(v.VariableNames)
+	variableName := lexer.PrettyFormatter(v.VariableNames)
 
 	value := `""`
 	if v.Value != nil {
@@ -63,7 +63,7 @@ func (m MultiExpressionNode) String() string {
 	} else {
 		var strSb53 strings.Builder
 		for _, expression := range m.Expressions {
-			strSb53.WriteString(fmt.Sprintf("%s, ", expression))
+			fmt.Fprintf(&strSb53, "%s, ", expression)
 		}
 		str += strSb53.String()
 
@@ -81,7 +81,7 @@ func (e ExpressionNode) String() string {
 	} else {
 		var strSb69 strings.Builder
 		for _, symbol := range e.Symbols {
-			strSb69.WriteString(fmt.Sprintf("%s, ", symbol))
+			fmt.Fprintf(&strSb69, "%s, ", symbol)
 		}
 		str += strSb69.String()
 
@@ -153,7 +153,7 @@ func PrettyAstNodeFormater(nodes []AstNode) string {
 	} else {
 		var strSb122 strings.Builder
 		for _, node := range nodes {
-			strSb122.WriteString(fmt.Sprintf("%s, ", node))
+			fmt.Fprintf(&strSb122, "%s, ", node)
 		}
 		str += strSb122.String()
 
@@ -171,7 +171,7 @@ func PrettyFormatter[E fmt.Stringer](nodes []E) string {
 	} else {
 		var strSb138 strings.Builder
 		for _, node := range nodes {
-			strSb138.WriteString(fmt.Sprintf("%v, ", node))
+			fmt.Fprintf(&strSb138, "%v, ", node)
 			// str += fmt.Sprintf("%#v, ", node)
 		}
 		str += strSb138.String()

@@ -157,7 +157,6 @@ func FindSourceDefinitionFromPosition(
 		)
 		variableDef.typ = typ
 
-		// TODO: use 'variableDef.implicitType' to find location of the source type instead
 		variableDef.rng = newToken.Range
 
 		varDef, ok := symbolDefinition.(*VariableDefinition)
@@ -461,13 +460,12 @@ func GoToDefinition(
 	}
 
 	// 3. Found the multi-scope varialbe
-	const MAX_LOOP_REPETITION int = 20
 	var count = 0
 
 	// Bubble up until you find the scope where the variable is defined
 	for parentScope != nil {
 		count++
-		if count > MAX_LOOP_REPETITION {
+		if count > MaxLoopRepetition {
 			panic("possible infinite loop detected while processing 'goToDefinition()'")
 		}
 

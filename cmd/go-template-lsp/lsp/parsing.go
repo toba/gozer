@@ -37,14 +37,14 @@ func SendToLspClient(output io.Writer, response []byte) {
 // Encode wraps data with Content-Length header per LSP specification.
 func Encode(dataContent []byte) []byte {
 	length := strconv.Itoa(len(dataContent))
-	dataHeader := []byte("Content-Length: " + length + "\r\n\r\n")
+	dataHeader := []byte(ContentLengthHeader + ": " + length + HeaderDelimiter)
 	dataHeader = append(dataHeader, dataContent...)
 	return dataHeader
 }
 
 // decode is a bufio.SplitFunc that parses LSP messages.
 func decode(data []byte, _ bool) (advance int, token []byte, err error) {
-	indexStartData := bytes.Index(data, []byte("\r\n\r\n"))
+	indexStartData := bytes.Index(data, []byte(HeaderDelimiter))
 	if indexStartData == -1 {
 		return 0, nil, nil
 	}
@@ -67,12 +67,12 @@ func decode(data []byte, _ bool) (advance int, token []byte, err error) {
 
 // getHeaderContentLength extracts the Content-Length value from LSP headers.
 func getHeaderContentLength(data []byte) (int, error) {
-	indexHeader := bytes.LastIndex(data, []byte("Content-Length"))
+	indexHeader := bytes.LastIndex(data, []byte(ContentLengthHeader))
 	if indexHeader == -1 {
-		return -1, errors.New("unable to find 'Content-Length' header")
+		return -1, errors.New("unable to find '" + ContentLengthHeader + "' header")
 	}
 
-	indexLineSeparator := bytes.Index(data[indexHeader:], []byte("\r\n"))
+	indexLineSeparator := bytes.Index(data[indexHeader:], []byte(LineDelimiter))
 	if indexLineSeparator >= 0 {
 		indexLineSeparator += indexHeader
 	} else {
@@ -83,7 +83,9 @@ func getHeaderContentLength(data []byte) (int, error) {
 		data[indexHeader:indexLineSeparator], []byte(":"),
 	)
 	if indexKeyValueSeparator == -1 {
-		return -1, errors.New("malformed 'Content-Length' header: missing ':'")
+		return -1, errors.New(
+			"malformed '" + ContentLengthHeader + "' header: missing ':'",
+		)
 	}
 
 	indexKeyValueSeparator += indexHeader
@@ -94,12 +96,12 @@ func getHeaderContentLength(data []byte) (int, error) {
 	contentLength, err := strconv.Atoi(string(contentLengthString))
 	if err != nil {
 		return -1, errors.New(
-			"malformed 'Content-Length' header: value is not an integer",
+			"malformed '" + ContentLengthHeader + "' header: value is not an integer",
 		)
 	}
 
 	if contentLength < 0 {
-		return -1, errors.New("'Content-Length' cannot be negative")
+		return -1, errors.New("'" + ContentLengthHeader + "' cannot be negative")
 	}
 
 	return contentLength, nil

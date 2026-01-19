@@ -5,6 +5,7 @@ import (
 	"errors"
 )
 
+// tokenizeLine tokenizes the content inside a single {{...}} block into tokens.
 func tokenizeLine(data []byte, initialPosition Range) (*StreamToken, []Error) {
 	tokenHandler := createTokenizer()
 	data, isCommentAllowed, isTrimmed, err := handleExternalWhiteSpaceTrimmer(
@@ -209,7 +210,9 @@ func tokenizeLine(data []byte, initialPosition Range) (*StreamToken, []Error) {
 	return stream, tokenHandler.Errs
 }
 
-// TODO: Redo Comment token detection
+// handleExternalWhiteSpaceTrimmer processes the "-" trim markers at the edges of a
+// template block (e.g., {{- or -}}). Returns the trimmed data, whether comments are
+// allowed at each edge, which edges were trimmed, and any errors.
 func handleExternalWhiteSpaceTrimmer(
 	data []byte,
 	pos Range,
@@ -226,7 +229,7 @@ func handleExternalWhiteSpaceTrimmer(
 		return data, isCommentAllowed, isTrimmed, err
 	}
 
-	// Simple Comment detection : {{/* ... */}}
+	// Check if first char is '/' (for comments like {{/* ... */}})
 	if data[0] == '/' {
 		isLeftCommentAllowed = true
 	}
@@ -236,7 +239,7 @@ func handleExternalWhiteSpaceTrimmer(
 		isRightCommentAllowed = true
 	}
 
-	// Advanced Comment detection : {{- /* ... */ -}}
+	// Handle right trim marker (e.g., {{- /* ... */ -}})
 	if data[lastElement] == '-' {
 		isRightTrimmed = true
 		data = data[:lastElement] // Trim right '-'

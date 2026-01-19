@@ -15,6 +15,7 @@ func GetUniqueNumber() int {
 	return uniqueUniversalCounter
 }
 
+// ParseError represents a syntax error encountered during parsing.
 type ParseError struct {
 	Err   error
 	Range lexer.Range
@@ -29,9 +30,10 @@ func (p ParseError) GetRange() lexer.Range {
 	return p.Range
 }
 
+// Parser converts a stream of tokens into an AST. Use Reset() before parsing each statement.
 type Parser struct {
 	stream            *lexer.StreamToken
-	lastToken         *lexer.Token // token before 'EOL', and only computed once at 'Reset()'
+	lastToken         *lexer.Token // last meaningful token (before EOL), set by Reset()
 	indexCurrentToken int
 	sizeStream        int
 
@@ -152,8 +154,8 @@ func appendStatementToCurrentScope(scope *GroupStatementNode, statement AstNode)
 	scope.rng.End = statement.Range().End
 }
 
-// Parse tokens into AST and return syntax errors found during the process
-// Returned parse tree is never <nil>
+// Parse converts token streams into an AST. Returns the root GroupStatementNode (never nil)
+// and any syntax errors encountered. Each stream represents one {{...}} block.
 func Parse(streams []*lexer.StreamToken) (*GroupStatementNode, []lexer.Error) {
 	var errs []lexer.Error
 

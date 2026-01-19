@@ -21,11 +21,8 @@ func makeTypeInferenceWhenPossible(
 		return nil, nil
 	}
 
-	// This shouldn't be executed, since 'makeTypeInference()' (this function) is only called
-	// by 'makeTypeCheckOnSymbolForFunction()' whenever the argument type is == any
-	// this 'symbolType' of this function == any
-	if !types.Identical(symbolType, typeAny.Type()) { // if type != ANY_TYPE
-		// TODO: remove the code below and panic instead ????
+	// If symbol already has a concrete type, just type-check it against the constraint
+	if !types.Identical(symbolType, typeAny.Type()) {
 		_, errMsg := TypeCheckAgainstConstraint(symbolType, constraintType)
 		if errMsg != nil {
 			err := parser.NewParseError(symbol, errMsg)
@@ -614,8 +611,8 @@ func getVariableImplicitRange(
 	return &currentNode.rng
 }
 
-// TODO: rename function 'updateVariableInferredType()', 'insertTypeIntoImplicitTypeNode()', ??????
-// 'updateVariableFromPathToImplicitType'
+// updateVariableImplicitType updates the inferred type tree for a variable based on
+// usage context. Only applies when the variable's declared type is 'any'.
 func updateVariableImplicitType(
 	varDef *VariableDefinition,
 	symbol *lexer.Token,

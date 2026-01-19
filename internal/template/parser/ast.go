@@ -9,6 +9,8 @@ import (
 // SymbolDefinition maps symbol names to AST nodes.
 type SymbolDefinition map[string]AstNode
 
+// AstNode is the interface implemented by all AST node types.
+//
 //go:generate go run ./generate.go
 type AstNode interface {
 	String() string
@@ -23,6 +25,7 @@ type AstNode interface {
 // Kind represents the type of AST node.
 type Kind int
 
+// VariableDeclarationNode represents a variable declaration (e.g., $x := expr).
 type VariableDeclarationNode struct {
 	kind          Kind
 	rng           lexer.Range
@@ -69,6 +72,7 @@ func NewVariableDeclarationNode(
 	return node
 }
 
+// VariableAssignationNode represents a variable assignment (e.g., $x = expr).
 type VariableAssignationNode struct {
 	kind          Kind
 	rng           lexer.Range
@@ -116,6 +120,7 @@ func NewVariableAssignmentNode(
 	return node
 }
 
+// MultiExpressionNode represents a pipeline of expressions separated by pipes (|).
 type MultiExpressionNode struct {
 	kind        Kind
 	rng         lexer.Range
@@ -161,6 +166,7 @@ func NewMultiExpressionNode(
 	return node
 }
 
+// ExpressionNode represents a single expression (function call, variable, literal, etc.).
 type ExpressionNode struct {
 	kind           Kind
 	rng            lexer.Range
@@ -205,6 +211,7 @@ func NewExpressionNode(kind Kind, reach lexer.Range) *ExpressionNode {
 	return node
 }
 
+// TemplateStatementNode represents a template invocation ({{template "name" .}}).
 type TemplateStatementNode struct {
 	kind         Kind
 	rng          lexer.Range
@@ -253,6 +260,7 @@ func NewTemplateStatementNode(kind Kind, reach lexer.Range) *TemplateStatementNo
 	return node
 }
 
+// groupStatementShortcut caches quick lookups within a group scope.
 type groupStatementShortcut struct {
 	CommentGoCode        *CommentNode
 	VariableDeclarations map[string]*VariableDeclarationNode
@@ -261,10 +269,11 @@ type groupStatementShortcut struct {
 	// TemplateCallUsed map[string]*TemplateStatementNode
 }
 
+// GroupStatementNode represents a block with nested statements (if, range, with, define, etc.).
 type GroupStatementNode struct {
-	kind        Kind // useful to know the group keyword ('if', 'with', ...)
+	kind        Kind // the keyword type (KindIf, KindRangeLoop, etc.)
 	rng         lexer.Range
-	parent      *GroupStatementNode // use 'isRoot' to check that the node is the ROOT
+	parent      *GroupStatementNode // use IsRoot() to check if this is the root node
 	ControlFlow AstNode
 	Statements  []AstNode
 	ShortCut    groupStatementShortcut
@@ -442,6 +451,7 @@ func (g *GroupStatementNode) IsGroupWithDollarAndDotVariableReset() bool {
 	return false
 }
 
+// CommentNode represents a template comment ({{/* ... */}}).
 type CommentNode struct {
 	kind   Kind
 	rng    lexer.Range
@@ -522,17 +532,13 @@ func NewSpecialCommandNode(
 	return node
 }
 
-// --------------
-// --------------
-// Tree Traversal
-// --------------
-// --------------
-
+// Visitor is used with Walk to traverse the AST. Visit returns nil to stop traversal.
 type Visitor interface {
 	Visit(node AstNode) Visitor
 	SetHeaderFlag(ok bool)
 }
 
+// Walk traverses the AST depth-first, calling action.Visit on each node.
 func Walk(action Visitor, node AstNode) {
 	if action.Visit(node) == nil {
 		return

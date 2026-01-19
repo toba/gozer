@@ -1,11 +1,11 @@
 ---
 # gozer-cch3
 title: Refactor analyzer go:code function
-status: todo
+status: completed
 type: task
 priority: normal
 created_at: 2026-01-18T22:43:34Z
-updated_at: 2026-01-18T22:43:34Z
+updated_at: 2026-01-19T00:17:10Z
 ---
 
 Code quality issue in analyzer.go:1666.

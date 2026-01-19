@@ -5,15 +5,14 @@ import (
 	"regexp"
 )
 
-// compiledPattern holds a pre-compiled regex pattern and its associated token information.
+// compiledPattern pairs a regex with metadata for matching a specific token type.
 type compiledPattern struct {
 	Regex                *regexp.Regexp
 	ID                   Kind
 	CanBeRightAfterToken bool
 }
 
-// compiledPatterns holds all pre-compiled regex patterns used during tokenization.
-// These are initialized once at package load time to avoid repeated compilation.
+// compiledPatterns holds pre-compiled regex patterns, initialized once at package load.
 var compiledPatterns struct {
 	whitespace        *regexp.Regexp
 	loneDelimiter     *regexp.Regexp
@@ -31,12 +30,10 @@ func init() {
 		"(?:{{(?:[^{}]|[^{}]{|[^{}]}|[^{}]{}|[^{}]}{|[\n\r\t])*?}})",
 	)
 
-	// Pre-compile token patterns
-	// (tokenRecognizerPattern) Tokens' meaning: VariableName, ID (Function ?), '==' '=' ':='
-	keywordPattern := "if|else|end|range|define|template|block|with|continue|break"
+	// Token patterns (order matters: more specific patterns must come first)
 	compiledPatterns.tokenPatterns = []compiledPattern{
 		{
-			Regex: regexp.MustCompile(keywordPattern),
+			Regex: regexp.MustCompile(KeywordPattern),
 			ID:    Keyword,
 		},
 		{
@@ -47,8 +44,6 @@ func init() {
 			Regex: regexp.MustCompile(`\x60(?:[^\x60\n\\]|\\.)*\x60`), // \x60 == \`
 			ID:    StringLit,
 		},
-		// BUG: what if the user input multiple Character within delimitator ? A bug will appear
-		// Solve it later
 		{
 			Regex: regexp.MustCompile(`'[^'\n\\]'`),
 			ID:    Character,
@@ -122,6 +117,7 @@ func init() {
 	}
 }
 
+// tokenizer accumulates tokens and errors while processing a single template block.
 type tokenizer struct {
 	Tokens     []Token
 	Errs       []Error
@@ -169,6 +165,7 @@ func createTokenizer() *tokenizer {
 	}
 }
 
+// trimSuperflousCharacter strips delimiters from token values (e.g., quotes from strings).
 func trimSuperflousCharacter(text []byte, id Kind) []byte {
 	switch id {
 	case Comment:

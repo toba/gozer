@@ -6,7 +6,7 @@ import (
 	"regexp"
 )
 
-// templateExtractor encapsulates state for extracting template code.
+// templateExtractor holds state while scanning source code for {{...}} blocks.
 type templateExtractor struct {
 	content       []byte
 	currentLine   int
@@ -15,8 +15,8 @@ type templateExtractor struct {
 	positions     []Range
 }
 
-// processLoneDelimiter processes a single lone delimiter match and updates state.
-// Returns the updated lone delimiter location after advancing content.
+// processLoneDelimiter handles an unmatched {{ or }} delimiter (a syntax error case).
+// Returns the next lone delimiter location after advancing past this one.
 func (e *templateExtractor) processLoneDelimiter(
 	loneLoc []int,
 	lonePattern *regexp.Regexp,
@@ -38,6 +38,8 @@ func (e *templateExtractor) processLoneDelimiter(
 	return lonePattern.FindIndex(e.content)
 }
 
+// extractTemplateCode scans source for all {{...}} template blocks and returns
+// their inner content (without delimiters) along with their source positions.
 func extractTemplateCode(content []byte) ([][]byte, []Range) {
 	if len(content) == 0 {
 		return nil, nil
@@ -53,7 +55,7 @@ func extractTemplateCode(content []byte) ([][]byte, []Range) {
 
 	ext := &templateExtractor{
 		content:       content,
-		currentLine:   0, // TODO: line shouldn't start at '0' but '1' instead
+		currentLine:   0,
 		currentColumn: 0,
 		codes:         nil,
 		positions:     nil,
@@ -90,7 +92,7 @@ func extractTemplateCode(content []byte) ([][]byte, []Range) {
 		ext.currentLine = templatePosition.End.Line
 		ext.currentColumn = templatePosition.End.Character + 1
 
-		// Trim '{{' and '}}'
+		// Extract content between {{ and }}
 		insideTemplate := ext.content[loc[0]+2 : loc[1]-2]
 
 		templatePosition.Start.Character += 2

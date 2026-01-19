@@ -15,16 +15,16 @@ var keywordHandlers map[string]keywordHandler
 
 func init() {
 	keywordHandlers = map[string]keywordHandler{
-		"if":       (*Parser).parseIfKeyword,
-		"else":     (*Parser).parseElseKeyword,
-		"range":    (*Parser).parseRangeKeyword,
-		"with":     (*Parser).parseWithKeyword,
-		"block":    (*Parser).parseBlockKeyword,
-		"define":   (*Parser).parseDefineKeyword,
-		"template": (*Parser).parseTemplateKeyword,
-		"end":      (*Parser).parseEndKeyword,
-		"break":    (*Parser).parseBreakKeyword,
-		"continue": (*Parser).parseContinueKeyword,
+		lexer.KeywordIf:       (*Parser).parseIfKeyword,
+		lexer.KeywordElse:     (*Parser).parseElseKeyword,
+		lexer.KeywordRange:    (*Parser).parseRangeKeyword,
+		lexer.KeywordWith:     (*Parser).parseWithKeyword,
+		lexer.KeywordBlock:    (*Parser).parseBlockKeyword,
+		lexer.KeywordDefine:   (*Parser).parseDefineKeyword,
+		lexer.KeywordTemplate: (*Parser).parseTemplateKeyword,
+		lexer.KeywordEnd:      (*Parser).parseEndKeyword,
+		lexer.KeywordBreak:    (*Parser).parseBreakKeyword,
+		lexer.KeywordContinue: (*Parser).parseContinueKeyword,
 	}
 }
 

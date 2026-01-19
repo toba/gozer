@@ -272,70 +272,81 @@ func TestGetTypeOfDollarVariableWithinFile(t *testing.T) {
 	}
 }
 
-// TODO: later on, add Range to the test suite
 func TestSplitVariableNameFields(t *testing.T) {
 	data := []struct {
-		Name           string
-		Offset         [2]int
-		ExpectedOffset [2]int
-		ExpectedNames  []string
-		ExpectedError  bool
+		Name              string
+		Offset            [2]int
+		ExpectedPositions []int
+		ExpectedNames     []string
+		ExpectedError     bool
 	}{
 		{
-			Name:          "name",
-			ExpectedNames: []string{"name"},
+			Name:              "name",
+			ExpectedNames:     []string{"name"},
+			ExpectedPositions: []int{0},
 		},
 		{
-			Name:          "wonder.land",
-			ExpectedNames: []string{"wonder", "land"},
+			Name:              "wonder.land",
+			ExpectedNames:     []string{"wonder", "land"},
+			ExpectedPositions: []int{0, 7},
 		},
 		{
-			Name:          "car.wheel..fault",
-			ExpectedNames: []string{"car", "wheel"},
-			ExpectedError: true,
+			Name:              "car.wheel..fault",
+			ExpectedNames:     []string{"car", "wheel"},
+			ExpectedPositions: []int{0, 4},
+			ExpectedError:     true,
 		},
 		{
-			Name:          "car.wheel.fault.",
-			ExpectedNames: []string{"car", "wheel", "fault"},
-			ExpectedError: true,
+			Name:              "car.wheel.fault.",
+			ExpectedNames:     []string{"car", "wheel", "fault"},
+			ExpectedPositions: []int{0, 4, 10},
+			ExpectedError:     true,
 		},
 		{
-			Name:          ".person.address.city",
-			ExpectedNames: []string{".", "person", "address", "city"},
+			Name:              ".person.address.city",
+			ExpectedNames:     []string{".", "person", "address", "city"},
+			ExpectedPositions: []int{0, 1, 8, 16},
 		},
 		{
-			Name:          "..department.class.student",
-			ExpectedNames: []string{"."},
-			ExpectedError: true,
+			Name:              "..department.class.student",
+			ExpectedNames:     []string{"."},
+			ExpectedPositions: []int{0},
+			ExpectedError:     true,
 		},
 		{
-			Name:          ".name",
-			ExpectedNames: []string{".", "name"},
+			Name:              ".name",
+			ExpectedNames:     []string{".", "name"},
+			ExpectedPositions: []int{0, 1},
 		},
 		{
-			Name:          "..name..",
-			ExpectedNames: []string{"."},
-			ExpectedError: true,
+			Name:              "..name..",
+			ExpectedNames:     []string{"."},
+			ExpectedPositions: []int{0},
+			ExpectedError:     true,
 		},
 		{
-			Name:          "$.name..",
-			ExpectedNames: []string{"$", "name"},
-			ExpectedError: true,
+			Name:              "$.name..",
+			ExpectedNames:     []string{"$", "name"},
+			ExpectedPositions: []int{0, 2},
+			ExpectedError:     true,
 		},
 		{
-			Name:          "$family.guy.",
-			ExpectedNames: []string{"$family", "guy"},
-			ExpectedError: true,
+			Name:              "$family.guy.",
+			ExpectedNames:     []string{"$family", "guy"},
+			ExpectedPositions: []int{0, 8},
+			ExpectedError:     true,
 		},
 		{
-			Name:          ".",
-			ExpectedNames: []string{"."},
-			ExpectedError: false,
+			Name:              ".",
+			ExpectedNames:     []string{"."},
+			ExpectedPositions: []int{0},
+			ExpectedError:     false,
 		},
 		{
-			Name:          "$.",
-			ExpectedNames: []string{"$"},
-			ExpectedError: true,
+			Name:              "$.",
+			ExpectedNames:     []string{"$"},
+			ExpectedPositions: []int{0},
+			ExpectedError:     true,
 		},
 	}
 
@@ -400,7 +411,18 @@ func TestSplitVariableNameFields(t *testing.T) {
 				}
 			}
 
-			_ = fieldsLocalPosition
+			// Test position/Range information
+			if len(datium.ExpectedPositions) != len(fieldsLocalPosition) {
+				t.Fatalf("position count mismatch.\n expect = %v\n got = %v",
+					datium.ExpectedPositions, fieldsLocalPosition)
+			}
+
+			for index, pos := range fieldsLocalPosition {
+				if pos != datium.ExpectedPositions[index] {
+					t.Errorf("position mismatch at index %d.\n expect = %v\n got = %v",
+						index, datium.ExpectedPositions, fieldsLocalPosition)
+				}
+			}
 		})
 	}
 }
@@ -556,9 +578,7 @@ func TestMakeTypeInference(t *testing.T) {
 			Expect: [2]string{"*int", "nil"},
 		},
 		{
-			// Passing []int to ...int variadic - type checker currently errors on this,
-			// but it should be valid with slice expansion syntax in Go.
-			// TODO: Fix variadic slice handling
+			// Passing []int to ...int variadic - slice expansion to variadic is valid
 			Expression: []Field{
 				{
 					Varname:    "dat",
@@ -573,13 +593,10 @@ func TestMakeTypeInference(t *testing.T) {
 					TypeString: "[]int",
 				},
 			},
-			// Expect: [2]string{"*int", "nil"},
-			ExpectedError: errTypeMismatch,
+			Expect: [2]string{"*int", "nil"},
 		},
 		{
-			// Omitting variadic args - type checker currently errors with "not enough arguments"
-			// but variadic args should be optional in Go.
-			// TODO: Fix variadic optional handling
+			// Omitting variadic args - variadic args are optional in Go
 			Expression: []Field{
 				{
 					Varname:    "dat",
@@ -590,8 +607,7 @@ func TestMakeTypeInference(t *testing.T) {
 					TypeString: "string",
 				},
 			},
-			// Expect: [2]string{"*int", "nil"},
-			ExpectedError: errFunctionNotEnoughArguments,
+			Expect: [2]string{"*int", "nil"},
 		},
 		{
 			Expression: []Field{
@@ -762,6 +778,108 @@ func TestMakeTypeInference(t *testing.T) {
 					datium.Expect,
 					inferedTypes,
 				)
+			}
+		})
+	}
+}
+
+func TestGetKeyAndValueTypeFromIterableType(t *testing.T) {
+	// Load the testdata package to get real types
+	fileLocation := filepath.Join("..", "testdata", "source_code.go")
+
+	cfg := &packages.Config{
+		Mode: packages.NeedDeps | packages.NeedTypes,
+	}
+
+	pkgs, err := packages.Load(cfg, fileLocation)
+	if err != nil {
+		t.Fatalf("failed to load the testdata source file: %s", err.Error())
+	}
+
+	if len(pkgs) != 1 {
+		t.Fatalf("expected exactly 1 package, got %d", len(pkgs))
+	}
+
+	pkg := pkgs[0]
+	if pkg.Types == nil {
+		t.Fatalf("no types information found for the testdata source file")
+	}
+
+	data := []struct {
+		Varname         string
+		ExpectedKeyType string
+		ExpectedValType string
+		ExpectedError   bool
+	}{
+		// Standard iterables
+		{
+			Varname:         "varSliceSimple",
+			ExpectedKeyType: "int",
+			ExpectedValType: "int",
+		},
+		{
+			Varname:         "varMapSimple",
+			ExpectedKeyType: "string",
+			ExpectedValType: "*int",
+		},
+		{
+			Varname:         "varChannelSimple",
+			ExpectedKeyType: "int",
+			ExpectedValType: "int",
+		},
+		// Iterator types (iter.Seq and iter.Seq2)
+		{
+			Varname:         "varIterSeq",
+			ExpectedKeyType: "any", // iter.Seq yields only value, key is ignored
+			ExpectedValType: "int",
+		},
+		{
+			Varname:         "varIterSeq2",
+			ExpectedKeyType: "string",
+			ExpectedValType: "int",
+		},
+		{
+			Varname:         "varIterSeqPerson",
+			ExpectedKeyType: "any",
+			ExpectedValType: "*command-line-arguments.Person",
+		},
+		{
+			Varname:         "varIterSeq2StringAst",
+			ExpectedKeyType: "string",
+			ExpectedValType: "command-line-arguments.Ast",
+		},
+	}
+
+	for _, datium := range data {
+		testName := "getKeyValType_" + datium.Varname
+
+		t.Run(testName, func(t *testing.T) {
+			obj := pkg.Types.Scope().Lookup(datium.Varname)
+			if obj == nil {
+				t.Fatalf("variable %s not found in testdata", datium.Varname)
+			}
+
+			keyType, valType, err := getKeyAndValueTypeFromIterableType(obj.Type())
+
+			if datium.ExpectedError {
+				if err == nil {
+					t.Fatalf("expected error but got nil")
+				}
+				return
+			}
+
+			if err != nil {
+				t.Fatalf("unexpected error: %s", err.Error())
+			}
+
+			if keyType.String() != datium.ExpectedKeyType {
+				t.Errorf("key type mismatch: expected %s, got %s",
+					datium.ExpectedKeyType, keyType.String())
+			}
+
+			if valType.String() != datium.ExpectedValType {
+				t.Errorf("value type mismatch: expected %s, got %s",
+					datium.ExpectedValType, valType.String())
 			}
 		})
 	}

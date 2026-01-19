@@ -177,11 +177,6 @@ func (h *WorkspaceTemplateManager) BuildWorkspaceTemplateDefinition(
 	// 2. Find files affected by the change
 	//
 	// Find all files affected by the template change (file that call the said template)
-	// TODO: WIP
-
-	// TODO: At a top level, change of template call must trigger a rebuild
-	// However, in local template definition, rebuilding the root template (file) is overkill
-	// We need a strategy that keep data concerning errors of 'root template' and 'childreen templates' associated to the same file
 	for fileName, root := range parsedFilesInWorkspace {
 		// Find all template call within the root file
 		for _, templateCall := range root.ShortCut.TemplateCallUsed {
@@ -211,9 +206,6 @@ type templateStatementCallStack struct {
 }
 
 type workspaceTemplateBuilder struct {
-	// TODO: REMOVE THIS FIELD when appropriate
-	fileNameToDefinition map[string]*FileDefinition // The file definition only contains accurate values for 'file.Functions' and 'file.TypeHints[root]'
-
 	multipleTemplateFromTemplateName map[string][]*parser.GroupStatementNode
 	// templateInCyclicalCall     map[*parser.TemplateStatementNode]bool
 
@@ -246,8 +238,6 @@ func NewTemplateBuilder(
 	}
 
 	handler := &workspaceTemplateBuilder{
-		fileNameToDefinition: make(map[string]*FileDefinition),
-
 		TemplateToFileName:   make(map[*parser.GroupStatementNode]string),
 		TemplateToDefinition: make(map[*parser.GroupStatementNode]*TemplateDefinition),
 		TemplateVisited:      make(map[*parser.GroupStatementNode]bool),
@@ -256,10 +246,10 @@ func NewTemplateBuilder(
 		// templateInCyclicalCall:     make(map[*parser.TemplateStatementNode]bool),
 		templateManager: templateHandler,
 
-		// callerStack: make([]*parser.GroupStatementNode, 0, 20),
+		// callerStack: make([]*parser.GroupStatementNode, 0, MaxDependencyDepth),
 		callPath:    make(map[string]bool),
-		callerStack: make([]templateStatementCallStack, 0, 20),
-		maxDepth:    20,
+		callerStack: make([]templateStatementCallStack, 0, MaxDependencyDepth),
+		maxDepth:    MaxDependencyDepth,
 
 		// Errs:          make([]lexer.Error, 0),
 		affectedFiles: make(map[string]bool),
@@ -299,8 +289,6 @@ func NewTemplateBuilder(
 				CycleTemplateErrs: make([]lexer.Error, 0),
 			}
 		}
-
-		handler.fileNameToDefinition[fileName] = handler.templateManager.AnalyzedDefinedTemplatesWithinFile[fileName].PartialFile
 
 		handler.templateManager.TemplateDependencies.fileNameWithCollidingTemplateName[fileName] = make(
 			map[string]bool,
@@ -584,7 +572,7 @@ func (h *workspaceTemplateBuilder) markCallPathAsCyclicalError(
 	}
 }
 
-// TODO: shouldn't this function be located near 'TemplateDefinition' type ????
+// CreateTemplateDefinition creates a TemplateDefinition using the builder's context.
 func (h *workspaceTemplateBuilder) CreateTemplateDefinition(
 	template *parser.GroupStatementNode,
 	templateName string,
@@ -649,8 +637,14 @@ func (h *workspaceTemplateBuilder) BuildTemplateDefinition(
 		)
 
 		if templateFound == nil { // nothing found
-			// TODO: handler error template not found here
-			// For better locality of behaviour ???
+			// Report error: template not found
+			errMsg := errors.New("template not defined: " + templateNameToVisit)
+			err := parser.NewParseError(templateCall.TemplateName, errMsg)
+
+			fileName := h.TemplateToFileName[templateScope]
+			partialFile := h.templateManager.AnalyzedDefinedTemplatesWithinFile[fileName]
+			partialFile.CycleTemplateErrs = append(partialFile.CycleTemplateErrs, err)
+			h.templateManager.AnalyzedDefinedTemplatesWithinFile[fileName] = partialFile
 			continue
 		}
 
@@ -739,7 +733,7 @@ func (h *workspaceTemplateBuilder) BuildTemplateDefinition(
 	// b. Only compute file that have changed
 	fileName := h.TemplateToFileName[templateScope]
 
-	file := h.fileNameToDefinition[fileName]
+	file := h.templateManager.AnalyzedDefinedTemplatesWithinFile[fileName].PartialFile
 	if file == nil {
 		log.Printf(
 			"template dependency analyzer was unable to find the partial file definition for %s\n"+

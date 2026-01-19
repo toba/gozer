@@ -1,11 +1,11 @@
 ---
 # gozer-zkdy
 title: Remove fileNameToDefinition field
-status: todo
+status: completed
 type: task
 priority: low
 created_at: 2026-01-18T22:43:34Z
-updated_at: 2026-01-18T22:43:34Z
+updated_at: 2026-01-19T00:32:12Z
 ---
 
 In template_dependencies_analysis.go:214, the `fileNameToDefinition` field is marked for removal 'when appropriate'.

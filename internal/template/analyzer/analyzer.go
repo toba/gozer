@@ -151,27 +151,7 @@ func NewFileDefinitionFromPartialFile(
 	return file, globalVariables, localVariables
 }
 
-func NewTemplateDefinition(
-	name string,
-	fileName string,
-	node parser.AstNode,
-	rng lexer.Range,
-	typ types.Type,
-) *TemplateDefinition {
-	def := &TemplateDefinition{}
-	def.name = name
-	def.fileName = fileName
-	def.node = node
-	def.rng = rng
-	def.inputType = typ
-
-	return def
-}
-
-// ------------
-// Start Here -
-// ------------
-
+// getBuiltinFunctionDefinition returns the built-in template functions (and, or, len, etc.).
 func getBuiltinFunctionDefinition() map[string]*FunctionDefinition {
 	anyType := typeAny.Type()
 	boolType := types.Typ[types.Bool]

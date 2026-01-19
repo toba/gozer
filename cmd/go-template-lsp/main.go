@@ -113,7 +113,7 @@ func main() {
 		_ = json.Unmarshal(data, &request)
 
 		if isExiting {
-			if request.Method == "exit" {
+			if request.Method == lsp.MethodExit {
 				break
 			} else {
 				response = lsp.ProcessIllegalRequestAfterShutdown(
@@ -131,7 +131,7 @@ func main() {
 		)
 
 		switch request.Method {
-		case "initialize":
+		case lsp.MethodInitialize:
 			serverCounter.Initialize++
 			var rootURI string
 			response, rootURI = lsp.ProcessInitializeRequest(data, serverName, version)
@@ -139,18 +139,18 @@ func main() {
 			rootPathNotification = nil
 			isRequestResponse = true
 
-		case "initialized":
+		case lsp.MethodInitialized:
 			serverCounter.Initialized++
 			isRequestResponse = false
 			lsp.ProcessInitializedNotification(data)
 
-		case "shutdown":
+		case lsp.MethodShutdown:
 			serverCounter.Shutdown++
 			isExiting = true
 			isRequestResponse = true
 			response = lsp.ProcessShutdownRequest(request.JsonRpc, request.Id)
 
-		case "textDocument/didOpen":
+		case lsp.MethodDidOpen:
 			serverCounter.TextDocument.DidOpen++
 			isRequestResponse = false
 			fileURI, fileContent = lsp.ProcessDidOpenTextDocumentNotification(data)
@@ -162,7 +162,7 @@ func main() {
 				muTextFromClient,
 			)
 
-		case "textDocument/didChange":
+		case lsp.MethodDidChange:
 			serverCounter.TextDocument.DidChange++
 			isRequestResponse = false
 			fileURI, fileContent = lsp.ProcessDidChangeTextDocumentNotification(data)
@@ -174,15 +174,15 @@ func main() {
 				muTextFromClient,
 			)
 
-		case "textDocument/didClose":
+		case lsp.MethodDidClose:
 			serverCounter.TextDocument.DidClose++
 
-		case "textDocument/hover":
+		case lsp.MethodHover:
 			serverCounter.Hover++
 			isRequestResponse = true
 			response = lsp.ProcessHoverRequest(data, storage.OpenedFilesAnalyzed)
 
-		case "textDocument/definition":
+		case lsp.MethodDefinition:
 			serverCounter.Definition++
 			isRequestResponse = true
 			response, _ = lsp.ProcessGoToDefinition(
@@ -191,7 +191,7 @@ func main() {
 				storage.RawFiles,
 			)
 
-		case "textDocument/foldingRange":
+		case lsp.MethodFoldingRange:
 			serverCounter.FoldingRange++
 			isRequestResponse = true
 			response, _ = lsp.ProcessFoldingRangeRequest(
@@ -359,8 +359,8 @@ func processDiagnosticNotification(
 	storage.ErrorsParsedFiles = make(map[string][]lexer.Error)
 
 	notification := &lsp.NotificationMessage[lsp.PublishDiagnosticsParams]{
-		JsonRpc: "2.0",
-		Method:  "textDocument/publishDiagnostics",
+		JsonRpc: lsp.JSONRPCVersion,
+		Method:  lsp.MethodPublishDiagnostics,
 		Params: lsp.PublishDiagnosticsParams{
 			Uri:         "placeholder",
 			Diagnostics: []lsp.Diagnostic{},
@@ -551,7 +551,7 @@ func setParseErrorsToDiagnosticsNotification(
 		diagnostic := lsp.Diagnostic{
 			Message:  err.GetError(),
 			Range:    lsp.ConvertParserRangeToLspRange(err.GetRange()),
-			Severity: 1, // 1 = Error, 2 = Warning, 3 = Info, 4 = Hint
+			Severity: lsp.SeverityError,
 		}
 
 		response.Params.Diagnostics = append(response.Params.Diagnostics, diagnostic)
@@ -683,12 +683,12 @@ func createLogFile() *os.File {
 	appCachePath := filepath.Join(userCachePath, "go-template-lsp")
 	logFilePath := filepath.Join(appCachePath, "go-template-lsp.log")
 
-	_ = os.Mkdir(appCachePath, 0750)
+	_ = os.Mkdir(appCachePath, lsp.DirPermissions)
 
 	fileInfo, err := os.Stat(logFilePath)
-	if err == nil && fileInfo.Size() >= 5_000_000 {
+	if err == nil && fileInfo.Size() >= lsp.MaxLogFileSize {
 		//nolint:gosec // safe log file path
-		file, err := os.OpenFile(logFilePath, os.O_TRUNC|os.O_WRONLY, 0600)
+		file, err := os.OpenFile(logFilePath, os.O_TRUNC|os.O_WRONLY, lsp.FilePermissions)
 		if err != nil {
 			return os.Stdout
 		}
@@ -696,7 +696,9 @@ func createLogFile() *os.File {
 	}
 
 	//nolint:gosec // safe log file path
-	file, err := os.OpenFile(logFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
+	file, err := os.OpenFile(
+		logFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, lsp.FilePermissions,
+	)
 	if err != nil {
 		return os.Stdout
 	}

@@ -46,6 +46,7 @@ func (p *Parser) parseVariableNames() ([]*lexer.Token, *ParseError) {
 	return variables, nil
 }
 
+// expressionStatementParser parses an expression, declaration, or assignment.
 func (p *Parser) expressionStatementParser() (AstNode, *ParseError) {
 	p.incRecursionDepth()
 	defer p.decRecursionDepth()
@@ -80,6 +81,8 @@ outter_loop:
 	return multiExpression, err
 }
 
+// declarationAssignmentParser parses "$var := expr" declarations.
+//
 //nolint:dupl // returns different type than initializationAssignmentParser
 func (p *Parser) declarationAssignmentParser() (*VariableDeclarationNode, *ParseError) {
 	if p.lastToken == nil {
@@ -130,6 +133,8 @@ func (p *Parser) declarationAssignmentParser() (*VariableDeclarationNode, *Parse
 	return varDeclarationNode, err
 }
 
+// initializationAssignmentParser parses "$var = expr" assignments.
+//
 //nolint:dupl // returns different type than declarationAssignmentParser
 func (p *Parser) initializationAssignmentParser() (*VariableAssignationNode, *ParseError) {
 	if p.lastToken == nil {
@@ -180,6 +185,7 @@ func (p *Parser) initializationAssignmentParser() (*VariableAssignationNode, *Pa
 	return varAssignation, err
 }
 
+// multiExpressionParser parses a pipeline of pipe-separated expressions.
 func (p *Parser) multiExpressionParser() (*MultiExpressionNode, *ParseError) {
 	if p.lastToken == nil {
 		panic("unexpected empty token found at end of the current instruction")
@@ -218,6 +224,7 @@ func (p *Parser) multiExpressionParser() (*MultiExpressionNode, *ParseError) {
 	return multiExpression, nil
 }
 
+// expressionParser parses a single expression (function call, variable access, literal, etc.).
 func (p *Parser) expressionParser() (*ExpressionNode, *ParseError) {
 	if p.lastToken == nil {
 		panic("unexpected empty token found at end of the current instruction")

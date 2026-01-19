@@ -1,5 +1,3 @@
-// TODO: later on, move this file to 'testdata/analyzer' directory
-
 package gota
 
 import (
@@ -23,7 +21,11 @@ var varInterfaceEmbeded EmbededInterface
 var varChannelSimple chan int
 var varAdvancedData *AdvancedData
 
-// TODO: map, slice, array, struct, channel, function, method, var
+// Iterator types (Go 1.23+)
+var varIterSeq func(yield func(int) bool)                    // iter.Seq[int]
+var varIterSeq2 func(yield func(string, int) bool)           // iter.Seq2[string, int]
+var varIterSeqPerson func(yield func(*Person) bool)          // iter.Seq[*Person]
+var varIterSeq2StringAst func(yield func(string, Ast) bool)  // iter.Seq2[string, Ast]
 
 type Ast struct {
 	Kind int

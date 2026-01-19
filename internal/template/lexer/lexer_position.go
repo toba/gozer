@@ -2,7 +2,7 @@ package lexer
 
 import "log"
 
-// ConvertSingleIndexToTextEditorPosition converts a character index to a text editor position.
+// ConvertSingleIndexToTextEditorPosition converts a byte offset to a Position (line, column).
 func ConvertSingleIndexToTextEditorPosition(buffer []byte, charIndex int) Position {
 	var line, col int
 
@@ -24,7 +24,8 @@ func ConvertSingleIndexToTextEditorPosition(buffer []byte, charIndex int) Positi
 	return pos
 }
 
-// 'rangeIndex' is includes at rangeIndex[0] but exclusive at rangeIndex[1] (eg. [a, b[)
+// convertRangeIndexToTextEditorPosition converts a byte range [start, end) to a Range.
+// The initialLine/Column offset is added to positions on line 0.
 func convertRangeIndexToTextEditorPosition(
 	editorContent []byte,
 	rangeIndex []int,

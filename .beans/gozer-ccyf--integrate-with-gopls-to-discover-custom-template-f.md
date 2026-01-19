@@ -1,10 +1,11 @@
 ---
 # gozer-ccyf
 title: Integrate with gopls to discover custom template functions
-status: in-progress
+status: completed
 type: feature
+priority: normal
 created_at: 2026-01-18T19:42:01Z
-updated_at: 2026-01-18T19:42:01Z
+updated_at: 2026-01-19T00:24:04Z
 ---
 
 Add support for discovering custom template functions (like Sprig functions or project-specific functions) so they aren't flagged as 'function undefined' errors.
@@ -22,3 +23,12 @@ After fixing builtin function false positives, custom functions added via templa
 - How does gopls expose symbol/type information?
 - Can we find template.FuncMap assignments via LSP?
 - What's the best UX for configuration?
+
+## Resolution
+Implemented via direct AST parsing in `funcmap_scanner.go` (approach #1 without gopls dependency):
+- Scans Go source files for `template.FuncMap` definitions
+- Extracts function names from composite literals
+- Supports text/template and html/template imports
+- Handles aliased imports
+- Skips vendor, node_modules, and test files
+- Comprehensive tests in `funcmap_scanner_test.go`

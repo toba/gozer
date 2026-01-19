@@ -1,9 +1,5 @@
 package parser
 
-// -----------
-// Parser Kind
-// -----------
-
 // Parser configuration constants
 const (
 	// maxRecursionDepth limits parser recursion to prevent stack overflow.

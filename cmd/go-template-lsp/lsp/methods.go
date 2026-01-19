@@ -213,11 +213,11 @@ func ProcessInitializeRequest(
 	}
 
 	res := ResponseMessage[InitializeResult]{
-		JsonRpc: "2.0",
+		JsonRpc: JSONRPCVersion,
 		Id:      req.Id,
 		Result: InitializeResult{
 			Capabilities: ServerCapabilities{
-				TextDocumentSync:     1,
+				TextDocumentSync:     TextDocumentSyncFull,
 				HoverProvider:        true,
 				DefinitionProvider:   true,
 				FoldingRangeProvider: true,
@@ -269,7 +269,7 @@ func ProcessIllegalRequestAfterShutdown(jsonVersion string, requestId ID) []byte
 		Id:      requestId,
 		Result:  nil,
 		Error: &ResponseError{
-			Code:    -32600,
+			Code:    ErrorInvalidRequest,
 			Message: "illegal request while server shutting down",
 		},
 	}

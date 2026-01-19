@@ -31,8 +31,8 @@ func (t Token) String() string {
 	)
 }
 
-// PrettyFormater converts an array of Stringer elements to a formatted string.
-func PrettyFormater[T fmt.Stringer](arr []T) string {
+// PrettyFormatter formats a slice of Stringer values as a comma-separated list in brackets.
+func PrettyFormatter[T fmt.Stringer](arr []T) string {
 	if len(arr) == 0 {
 		return "[]"
 	}
@@ -40,7 +40,7 @@ func PrettyFormater[T fmt.Stringer](arr []T) string {
 	str := "["
 	var strSb84 strings.Builder
 	for _, el := range arr {
-		strSb84.WriteString(fmt.Sprintf("%s,", el))
+		fmt.Fprintf(&strSb84, "%s,", el)
 	}
 	str += strSb84.String()
 
@@ -50,7 +50,8 @@ func PrettyFormater[T fmt.Stringer](arr []T) string {
 	return str
 }
 
+// Print outputs tokens as a formatted list to stdout (for debugging).
 func Print(tokens ...Token) {
-	str := PrettyFormater(tokens)
+	str := PrettyFormatter(tokens)
 	fmt.Println(str)
 }
