@@ -50,6 +50,7 @@ type requestCounter struct {
 	DocumentHighlight int
 	Definition        int
 	Hover             int
+	SemanticTokens    int
 	Other             int
 }
 
@@ -206,6 +207,16 @@ func main() {
 			serverCounter.DocumentHighlight++
 			isRequestResponse = true
 			response, _ = lsp.ProcessDocumentHighlightRequest(
+				data,
+				storage.ParsedFiles,
+				textFromClient,
+				muTextFromClient,
+			)
+
+		case lsp.MethodSemanticTokensFull:
+			serverCounter.SemanticTokens++
+			isRequestResponse = true
+			response, _ = lsp.ProcessSemanticTokensRequest(
 				data,
 				storage.ParsedFiles,
 				textFromClient,

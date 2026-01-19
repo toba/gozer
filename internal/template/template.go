@@ -549,3 +549,239 @@ func Print(node ...parser.AstNode) {
 	str := parser.PrettyAstNodeFormater(node)
 	fmt.Println(str)
 }
+
+// SemanticTokenType represents semantic token types for LSP.
+type SemanticTokenType int
+
+// Semantic token types (must match the legend in lsp/protocol.go).
+const (
+	SemanticTokenKeyword SemanticTokenType = iota
+	SemanticTokenVariable
+	SemanticTokenFunction
+	SemanticTokenProperty
+	SemanticTokenString
+	SemanticTokenNumber
+	SemanticTokenOperator
+	SemanticTokenComment
+)
+
+// SemanticTokenModifier represents semantic token modifiers for LSP.
+type SemanticTokenModifier int
+
+// Semantic token modifiers (bit flags, must match the legend in lsp/protocol.go).
+const (
+	SemanticModifierDeclaration SemanticTokenModifier = 1 << iota
+	SemanticModifierDefinition
+	SemanticModifierReadonly
+)
+
+// SemanticToken represents a single semantic token with position and type info.
+type SemanticToken struct {
+	Line      int
+	StartChar int
+	Length    int
+	TokenType SemanticTokenType
+	Modifiers SemanticTokenModifier
+}
+
+// SemanticTokens extracts semantic tokens from a parsed template AST.
+// It walks the AST and returns tokens suitable for LSP semantic highlighting.
+func SemanticTokens(rootNode *parser.GroupStatementNode) []SemanticToken {
+	if rootNode == nil {
+		return nil
+	}
+
+	tokens := make([]SemanticToken, 0, 100)
+	collectSemanticTokens(rootNode, &tokens)
+
+	// Sort tokens by position (line, then character)
+	sortSemanticTokens(tokens)
+
+	return tokens
+}
+
+// collectSemanticTokens recursively collects tokens from the AST.
+func collectSemanticTokens(node parser.AstNode, tokens *[]SemanticToken) {
+	if node == nil {
+		return
+	}
+
+	switch n := node.(type) {
+	case *parser.GroupStatementNode:
+		// Add keyword token if present
+		if n.KeywordToken != nil {
+			*tokens = append(
+				*tokens,
+				tokenFromLexerToken(n.KeywordToken, SemanticTokenKeyword, 0),
+			)
+		}
+
+		// Process control flow (header expression)
+		if n.ControlFlow != nil {
+			collectSemanticTokens(n.ControlFlow, tokens)
+		}
+
+		// Process child statements
+		for _, stmt := range n.Statements {
+			collectSemanticTokens(stmt, tokens)
+		}
+
+	case *parser.VariableDeclarationNode:
+		// Variable names in declarations
+		for _, varToken := range n.VariableNames {
+			*tokens = append(*tokens, tokenFromLexerToken(
+				varToken,
+				SemanticTokenVariable,
+				SemanticModifierDeclaration,
+			))
+		}
+		// Process the value expression
+		if n.Value != nil {
+			collectSemanticTokens(n.Value, tokens)
+		}
+
+	case *parser.VariableAssignationNode:
+		// Variable names in assignments
+		for _, varToken := range n.VariableNames {
+			*tokens = append(
+				*tokens,
+				tokenFromLexerToken(varToken, SemanticTokenVariable, 0),
+			)
+		}
+		// Process the value expression
+		if n.Value != nil {
+			collectSemanticTokens(n.Value, tokens)
+		}
+
+	case *parser.MultiExpressionNode:
+		for _, expr := range n.Expressions {
+			collectSemanticTokens(expr, tokens)
+		}
+
+	case *parser.ExpressionNode:
+		// Process each symbol token
+		for _, sym := range n.Symbols {
+			semToken := lexerTokenToSemanticToken(sym)
+			if semToken != nil {
+				*tokens = append(*tokens, *semToken)
+			}
+		}
+		// Process expanded tokens (nested expressions)
+		for _, expanded := range n.ExpandedTokens {
+			collectSemanticTokens(expanded, tokens)
+		}
+
+	case *parser.TemplateStatementNode:
+		// Template keyword is in KeywordRange, template name is a string
+		if n.TemplateName != nil {
+			*tokens = append(
+				*tokens,
+				tokenFromLexerToken(n.TemplateName, SemanticTokenString, 0),
+			)
+		}
+		// Process the expression argument
+		if n.Expression != nil {
+			collectSemanticTokens(n.Expression, tokens)
+		}
+
+	case *parser.CommentNode:
+		// Comments - use the node's range
+		rng := n.Range()
+		if !rng.IsEmpty() {
+			*tokens = append(*tokens, SemanticToken{
+				Line:      rng.Start.Line,
+				StartChar: rng.Start.Character,
+				Length:    calculateLength(rng),
+				TokenType: SemanticTokenComment,
+				Modifiers: 0,
+			})
+		}
+	}
+}
+
+// lexerTokenToSemanticToken converts a lexer token to a semantic token.
+func lexerTokenToSemanticToken(tok *lexer.Token) *SemanticToken {
+	if tok == nil || tok.Range.IsEmpty() {
+		return nil
+	}
+
+	var tokenType SemanticTokenType
+	var modifiers SemanticTokenModifier
+
+	switch tok.ID {
+	case lexer.Keyword:
+		tokenType = SemanticTokenKeyword
+	case lexer.DollarVariable:
+		tokenType = SemanticTokenVariable
+	case lexer.DotVariable, lexer.Identifier:
+		tokenType = SemanticTokenProperty
+	case lexer.Function:
+		tokenType = SemanticTokenFunction
+	case lexer.StringLit, lexer.Character:
+		tokenType = SemanticTokenString
+	case lexer.Number, lexer.Decimal, lexer.ComplexNumber, lexer.Boolean:
+		tokenType = SemanticTokenNumber
+	case lexer.Assignment, lexer.DeclarationAssignment, lexer.Pipe, lexer.EqualComparison:
+		tokenType = SemanticTokenOperator
+	case lexer.Comment:
+		tokenType = SemanticTokenComment
+	default:
+		// Skip tokens we don't highlight (parens, commas, etc.)
+		return nil
+	}
+
+	return &SemanticToken{
+		Line:      tok.Range.Start.Line,
+		StartChar: tok.Range.Start.Character,
+		Length:    calculateTokenLength(tok),
+		TokenType: tokenType,
+		Modifiers: modifiers,
+	}
+}
+
+// tokenFromLexerToken creates a SemanticToken from a lexer.Token with specified type and modifiers.
+func tokenFromLexerToken(
+	tok *lexer.Token,
+	tokenType SemanticTokenType,
+	modifiers SemanticTokenModifier,
+) SemanticToken {
+	return SemanticToken{
+		Line:      tok.Range.Start.Line,
+		StartChar: tok.Range.Start.Character,
+		Length:    calculateTokenLength(tok),
+		TokenType: tokenType,
+		Modifiers: modifiers,
+	}
+}
+
+// calculateTokenLength calculates the length of a token.
+func calculateTokenLength(tok *lexer.Token) int {
+	if tok.Range.Start.Line == tok.Range.End.Line {
+		return tok.Range.End.Character - tok.Range.Start.Character
+	}
+	// For multi-line tokens, use the value length
+	return len(tok.Value)
+}
+
+// calculateLength calculates the length from a range.
+func calculateLength(rng lexer.Range) int {
+	if rng.Start.Line == rng.End.Line {
+		return rng.End.Character - rng.Start.Character
+	}
+	// Multi-line ranges - return estimated length
+	return rng.End.Character
+}
+
+// sortSemanticTokens sorts tokens by position (line first, then character).
+func sortSemanticTokens(tokens []SemanticToken) {
+	for i := 1; i < len(tokens); i++ {
+		for j := i; j > 0; j-- {
+			if tokens[j].Line < tokens[j-1].Line ||
+				(tokens[j].Line == tokens[j-1].Line && tokens[j].StartChar < tokens[j-1].StartChar) {
+				tokens[j], tokens[j-1] = tokens[j-1], tokens[j]
+			} else {
+				break
+			}
+		}
+	}
+}

@@ -85,13 +85,27 @@ type InitializeParams struct {
 	InitializationOptions any    `json:"initializationOptions"`
 }
 
+// SemanticTokensLegend describes the token types and modifiers supported.
+type SemanticTokensLegend struct {
+	TokenTypes     []string `json:"tokenTypes"`
+	TokenModifiers []string `json:"tokenModifiers"`
+}
+
+// SemanticTokensOptions describes semantic tokens provider capabilities.
+type SemanticTokensOptions struct {
+	Legend SemanticTokensLegend `json:"legend"`
+	Full   bool                 `json:"full"`
+	Range  bool                 `json:"range"`
+}
+
 // ServerCapabilities describes the capabilities this server supports.
 type ServerCapabilities struct {
-	TextDocumentSync          int  `json:"textDocumentSync"`
-	HoverProvider             bool `json:"hoverProvider"`
-	DefinitionProvider        bool `json:"definitionProvider"`
-	FoldingRangeProvider      bool `json:"foldingRangeProvider"`
-	DocumentHighlightProvider bool `json:"documentHighlightProvider"`
+	TextDocumentSync          int                    `json:"textDocumentSync"`
+	HoverProvider             bool                   `json:"hoverProvider"`
+	DefinitionProvider        bool                   `json:"definitionProvider"`
+	FoldingRangeProvider      bool                   `json:"foldingRangeProvider"`
+	DocumentHighlightProvider bool                   `json:"documentHighlightProvider"`
+	SemanticTokensProvider    *SemanticTokensOptions `json:"semanticTokensProvider,omitempty"`
 }
 
 // InitializeResult is the response to the initialize request.
@@ -223,6 +237,14 @@ func ProcessInitializeRequest(
 				DefinitionProvider:        true,
 				FoldingRangeProvider:      true,
 				DocumentHighlightProvider: true,
+				SemanticTokensProvider: &SemanticTokensOptions{
+					Legend: SemanticTokensLegend{
+						TokenTypes:     SemanticTokenTypes,
+						TokenModifiers: SemanticTokenModifiers,
+					},
+					Full:  true,
+					Range: false,
+				},
 			},
 		},
 	}
@@ -789,4 +811,130 @@ func ProcessDocumentHighlightRequest(
 	}
 
 	return responseData, fileName
+}
+
+// SemanticTokensParams holds parameters for textDocument/semanticTokens/full.
+type SemanticTokensParams struct {
+	TextDocument TextDocumentIdentifier `json:"textDocument"`
+}
+
+// SemanticTokensResult holds the encoded semantic tokens.
+type SemanticTokensResult struct {
+	Data []uint `json:"data"`
+}
+
+// ProcessSemanticTokensRequest handles textDocument/semanticTokens/full.
+func ProcessSemanticTokensRequest(
+	data []byte,
+	parsedFiles map[string]*parser.GroupStatementNode,
+	textFromClient map[string][]byte,
+	muTextFromClient *sync.Mutex,
+) (response []byte, fileName string) {
+	req := RequestMessage[SemanticTokensParams]{}
+
+	err := json.Unmarshal(data, &req)
+	if err != nil {
+		slog.Warn("Error unmarshalling semantic tokens request: " + err.Error())
+		return nil, ""
+	}
+
+	var rootNode *parser.GroupStatementNode
+	fileUri := req.Params.TextDocument.Uri
+
+	muTextFromClient.Lock()
+	fileContent := textFromClient[fileUri]
+
+	if fileContent != nil {
+		rootNode, _ = tmpl.ParseSingleFile(fileContent)
+	}
+
+	if rootNode == nil {
+		rootNode = parsedFiles[fileUri]
+	}
+
+	muTextFromClient.Unlock()
+
+	var res ResponseMessage[*SemanticTokensResult]
+	res.Id = req.Id
+	res.JsonRpc = req.JsonRpc
+
+	if rootNode == nil {
+		// Return empty result if file not found
+		res.Result = &SemanticTokensResult{Data: []uint{}}
+		responseData, err := json.Marshal(res)
+		if err != nil {
+			slog.Warn("Error marshalling semantic tokens response: " + err.Error())
+			return nil, fileName
+		}
+		return responseData, fileName
+	}
+
+	tmplTokens := tmpl.SemanticTokens(rootNode)
+	lspTokens := convertSemanticTokens(tmplTokens)
+	res.Result = &SemanticTokensResult{Data: encodeSemanticTokens(lspTokens)}
+
+	responseData, err := json.Marshal(res)
+	if err != nil {
+		slog.Warn("Error marshalling semantic tokens response: " + err.Error())
+		return nil, fileName
+	}
+
+	return responseData, fileName
+}
+
+// SemanticToken represents a single semantic token before encoding.
+type SemanticToken struct {
+	Line      int
+	StartChar int
+	Length    int
+	TokenType int
+	Modifiers int
+}
+
+// convertSemanticTokens converts template.SemanticToken to lsp.SemanticToken.
+func convertSemanticTokens(tmplTokens []tmpl.SemanticToken) []SemanticToken {
+	result := make([]SemanticToken, len(tmplTokens))
+	for i, t := range tmplTokens {
+		result[i] = SemanticToken{
+			Line:      t.Line,
+			StartChar: t.StartChar,
+			Length:    t.Length,
+			TokenType: int(t.TokenType),
+			Modifiers: int(t.Modifiers),
+		}
+	}
+	return result
+}
+
+// encodeSemanticTokens converts absolute tokens to LSP's delta-encoded format.
+// Each token is encoded as 5 integers: deltaLine, deltaStartChar, length, tokenType, tokenModifiers.
+func encodeSemanticTokens(tokens []SemanticToken) []uint {
+	if len(tokens) == 0 {
+		return []uint{}
+	}
+
+	result := make([]uint, 0, len(tokens)*5)
+	prevLine := 0
+	prevChar := 0
+
+	for _, token := range tokens {
+		deltaLine := token.Line - prevLine
+		deltaChar := token.StartChar
+		if deltaLine == 0 {
+			deltaChar = token.StartChar - prevChar
+		}
+
+		result = append(result,
+			intToUint(deltaLine),
+			intToUint(deltaChar),
+			intToUint(token.Length),
+			intToUint(token.TokenType),
+			intToUint(token.Modifiers),
+		)
+
+		prevLine = token.Line
+		prevChar = token.StartChar
+	}
+
+	return result
 }
