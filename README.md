@@ -99,23 +99,9 @@ cargo build --target wasm32-wasip1
 
 ## Credits
 
-### LSP Server
+**[STR-Consulting/go-template-lsp](https://github.com/STR-Consulting/go-template-lsp)** - The Go template LSP server that powers this extension.
 
-**[STR-Consulting/go-template-lsp](https://github.com/STR-Consulting/go-template-lsp)** (MIT License)
-
-The Go template LSP server that powers this extension.
-
-### Tree-sitter Grammar
-
-**[ngalaiko/tree-sitter-go-template](https://github.com/ngalaiko/tree-sitter-go-template)** (MIT License)
-
-Provides the tree-sitter grammar for parsing Go template syntax.
-
-### Syntax Highlighting Queries
-
-**[hjr265/zed-gotmpl](https://github.com/hjr265/zed-gotmpl)** (MIT License)
-
-The tree-sitter query patterns for syntax highlighting are adapted from this project by Mahmud Ridwan.
+**[hjr265/zed-gotmpl](https://github.com/hjr265/zed-gotmpl)** - Tree-sitter query patterns for syntax highlighting, adapted from this project by Mahmud Ridwan.
 
 ## License
 
