@@ -32,6 +32,11 @@ func FindSourceDefinitionFromPosition(
 		return nil
 	}
 
+	// Keywords (if, else, range, end, etc.) don't have hover content
+	if seeker.IsKeyword {
+		return nil
+	}
+
 	//
 	// 2. From the node and token found, find the appropriate 'Source Definition'
 	//

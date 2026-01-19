@@ -710,3 +710,68 @@ func TestHover_MultipleInstancesSameLine(t *testing.T) {
 		})
 	}
 }
+
+// TestHover_KeywordsReturnEmpty verifies that hovering over control flow keywords
+// (if, else, range, end, etc.) returns empty hover content, not incorrect values.
+func TestHover_KeywordsReturnEmpty(t *testing.T) {
+	// Template with various control flow keywords
+	// Line 0: {{if .Cond}}yes{{else}}no{{end}}
+	//           ^^ if at char 2
+	//                          ^^^^ else at char 16
+	//                                    ^^^ end at char 25
+	source := `{{if .Cond}}yes{{else}}no{{end}}`
+
+	root, parseErrs := template.ParseSingleFile([]byte(source))
+	if len(parseErrs) != 0 {
+		t.Fatalf("Parse errors: %v", parseErrs)
+	}
+
+	workspace := map[string]*parser.GroupStatementNode{
+		"test.html": root,
+	}
+
+	file, _ := template.DefinitionAnalysisSingleFile("test.html", workspace)
+	if file == nil {
+		t.Fatal("Expected non-nil file definition")
+	}
+
+	testCases := []struct {
+		name string
+		pos  lexer.Position
+	}{
+		{
+			name: "if keyword",
+			pos:  lexer.Position{Line: 0, Character: 3}, // on "if"
+		},
+		{
+			name: "else keyword",
+			pos:  lexer.Position{Line: 0, Character: 17}, // on "else"
+		},
+		{
+			name: "end keyword",
+			pos:  lexer.Position{Line: 0, Character: 26}, // on "end"
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			hoverText, hoverRange := template.Hover(file, tc.pos)
+
+			if hoverText != "" {
+				t.Errorf(
+					"Expected empty hover text for %s, but got %q",
+					tc.name,
+					hoverText,
+				)
+			}
+
+			if !hoverRange.IsEmpty() {
+				t.Errorf(
+					"Expected empty hover range for %s, but got %v",
+					tc.name,
+					hoverRange,
+				)
+			}
+		})
+	}
+}
