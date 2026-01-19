@@ -1,7 +1,6 @@
 MIT License
 
 Copyright (c) 2025 Jason Abbott
-Copyright (c) 2024 yayolande (go-template-lsp, gota template parser)
 Copyright (c) 2024 Mahmud Ridwan (zed-gotmpl tree-sitter queries)
 Copyright (c) 2021 Nikita Galaiko (tree-sitter-go-template grammar)
 
