@@ -12,4 +12,4 @@ languages = ["Go Text Template", "Go HTML Template", "Go HTMX 2", "Go HTMX 4"]
 
 [grammars.gotmpl]
 repository = "https://github.com/ngalaiko/tree-sitter-go-template"
-rev = "5f19a36bb1eebb30454e277b222b278ceafed0dd"
+rev = "04270cd3512e2c7de0c5f2823725d7b0c4c01fda"
