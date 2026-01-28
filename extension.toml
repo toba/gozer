@@ -1,6 +1,6 @@
 id = "go-template-lsp"
 name = "Go Template LSP"
-version = "0.6.5"
+version = "0.6.6"
 schema_version = 1
 authors = ["Jason Abbott"]
 description = "Go template support with LSP (hover, diagnostics, go-to-definition)"
