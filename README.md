@@ -2,7 +2,7 @@
 
 <img src="./docs/gozer.png" alt="Gozer gopher" width="100"/>
 
-A Zed editor extension for Go templates (`text/template` and `html/template`), powered by [go-template-lsp](https://github.com/STR-Consulting/go-template-lsp).
+A Zed editor extension for Go templates (`text/template` and `html/template`), powered by [go-template-lsp](https://github.com/toba/go-template-lsp).
 
 ## Features
 
@@ -99,7 +99,7 @@ cargo build --target wasm32-wasip1
 
 ## Credits
 
-**[STR-Consulting/go-template-lsp](https://github.com/STR-Consulting/go-template-lsp)** - The Go template LSP server that powers this extension.
+**[toba/go-template-lsp](https://github.com/toba/go-template-lsp)** - The Go template LSP server that powers this extension.
 
 **[hjr265/zed-gotmpl](https://github.com/hjr265/zed-gotmpl)** - Tree-sitter query patterns for syntax highlighting, adapted from this project by Mahmud Ridwan.
 

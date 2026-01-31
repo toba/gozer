@@ -6,7 +6,7 @@ use std::fs;
 use zed_extension_api::{self as zed, LanguageServerId, Result, Worktree};
 
 /// The GitHub repository owner/name for downloading releases.
-const GITHUB_REPO: &str = "STR-Consulting/go-template-lsp";
+const GITHUB_REPO: &str = "toba/go-template-lsp";
 
 /// The name of the LSP binary.
 const BINARY_NAME: &str = "go-template-lsp";
