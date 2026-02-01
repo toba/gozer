@@ -1,13 +1,13 @@
-id = "go-template-lsp"
-name = "Go Template LSP"
-version = "0.7.0"
+id = "gozer"
+name = "Gozer"
+version = "0.7.1"
 schema_version = 1
 authors = ["Jason Abbott"]
 description = "Go template support with LSP (hover, diagnostics, go-to-definition)"
 repository = "https://github.com/toba/gozer"
 
 [language_servers.go-template-lsp]
-name = "Go Template LSP"
+name = "Gozer"
 languages = ["Go Text Template", "Go HTML Template", "Go HTMX 2", "Go HTMX 4"]
 
 [grammars.gotmpl]
