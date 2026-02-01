@@ -16,6 +16,4 @@ Thumbs.db
 # Claude Code
 /.claude/settings.local.json
 
-# Beans sync
-.beans.clickup.yml
 grammars/
