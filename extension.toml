@@ -6,7 +6,7 @@ authors = ["Jason Abbott"]
 description = "Go template support with LSP (hover, diagnostics, go-to-definition)"
 repository = "https://github.com/toba/gozer"
 
-[language_servers.go-template-lsp]
+[language_servers.gozer]
 name = "Gozer"
 languages = ["Go Text Template", "Go HTML Template", "Go HTMX 2", "Go HTMX 4"]
 
