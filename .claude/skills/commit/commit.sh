@@ -41,15 +41,15 @@ if [ "$PUSH" = "true" ]; then
     git push
 fi
 
-# Sync to ClickUp
+# Sync issues to GitHub
 echo ""
-echo "==> Syncing beans to ClickUp..."
-beanup sync || echo "Warning: beanup sync failed or not available"
+echo "==> Syncing issues to GitHub..."
+todo sync || echo "Warning: todo sync failed or not available"
 
 # Include sync state changes in the commit
-if [ -n "$(git status --porcelain .beans/.sync.json 2>/dev/null)" ]; then
-    echo "Including .beans/.sync.json in commit..."
-    git add .beans/.sync.json
+if [ -n "$(git status --porcelain .issues/ 2>/dev/null)" ]; then
+    echo "Including .issues/ changes in commit..."
+    git add .issues/
     git commit --amend --no-edit
     if [ "$PUSH" = "true" ]; then
         git push --force-with-lease

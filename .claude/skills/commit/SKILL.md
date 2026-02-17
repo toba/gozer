@@ -25,6 +25,6 @@ args: "[push]"
    - **Subject**: Lowercase, imperative mood (e.g., "add feature" not "Added feature")
    - **Description**: Explain the "why" and context. What problem does this solve? What approach was taken?
 
-The script handles: stage, commit, and beanup sync. Push happens when `PUSH=true`.
+The script handles: stage, commit, and todo sync. Push happens when `PUSH=true`.
 
-**Note**: Version is set manually in `extension.toml` and `Cargo.toml`. Update these files before committing when releasing a new version.
+**Note**: Do NOT bump versions or create releases here. Versioning and releases are handled via `/zed` from the main repo.
