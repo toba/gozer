@@ -11,5 +11,5 @@ name = "Gozer"
 languages = ["Go Text Template", "Go HTML Template", "Go HTMX 2", "Go HTMX 4"]
 
 [grammars.gotmpl]
-repository = "https://github.com/ngalaiko/tree-sitter-go-template"
-rev = "04270cd3512e2c7de0c5f2823725d7b0c4c01fda"
+repository = "https://github.com/toba/gozer"
+path = "grammars/gotmpl"

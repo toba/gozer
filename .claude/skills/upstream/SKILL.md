@@ -1,5 +1,5 @@
 ---
-name: upstream-check
+name: upstream
 description: Check upstream repos for updates. Use when user says "/upstream", "check upstream", "sync with upstream", or wants to see what's changed in the source repos this project was derived from.
 ---
 
@@ -61,6 +61,11 @@ EOF
 - New highlighting patterns
 - Query fixes
 - Zed-specific improvements
+
+## Previously Reviewed & Skipped
+
+**`hjr265/zed-gotmpl` — per-filetype language split (`70efaa4` and related commits `0bc0f37`, `3fb890e`):**
+Upstream split `gotmpl` into separate language directories per embedded language (gotmpl-bash, gotmpl-css, gotmpl-go, gotmpl-js, gotmpl-json, gotmpl-sql, gotmpl-toml, gotmpl-xml, gotmpl-yaml, gotmpl-typescript). Not applicable — gozer focuses on htmx/HTML templates, not general-purpose template embeddings for other languages.
 
 ## Output
 
