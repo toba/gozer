@@ -10,10 +10,10 @@ VERSION="${VERSION#v}" # strip leading v if present
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_DIR="$(dirname "$SCRIPT_DIR")"
 
-sed -i'' -e "s/^version = \".*\"/version = \"$VERSION\"/" "$REPO_DIR/extension.toml"
+sed -i '' -e "s/^version = \".*\"/version = \"$VERSION\"/" "$REPO_DIR/extension.toml"
 
 # Update only the [package] version, not dependency versions
-sed -i'' -e "/^\[package\]/,/^\[/{s/^version = \".*\"/version = \"$VERSION\"/;}" "$REPO_DIR/Cargo.toml"
+sed -i '' -e "/^\[package\]/,/^\[/{s/^version = \".*\"/version = \"$VERSION\"/;}" "$REPO_DIR/Cargo.toml"
 
 # Regenerate lockfile if cargo is available
 if command -v cargo &>/dev/null; then
