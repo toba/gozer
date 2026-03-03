@@ -1,4 +1,7 @@
-; Inject HTML into text nodes (content outside {{ }} template tags)
-((text) @injection.content
+; Inject HTML into the full template, including children (template actions).
+; This gives the HTML parser one continuous range so attribute values
+; containing template expressions (e.g. value="{{.Email}}") don't create
+; gaps that break HTML coloring for the rest of the file.
+((template) @injection.content
   (#set! injection.language "html")
-  (#set! injection.combined))
+  (#set! injection.include-children))
